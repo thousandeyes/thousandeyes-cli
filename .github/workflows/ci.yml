@@ -38,6 +38,9 @@ jobs:
       - name: Validate
         run: make validate
 
+      - name: Run govulncheck
+        run: make vulncheck
+
       - name: Test
         run: make test
 
