@@ -1,0 +1,82 @@
+version: 2
+
+project_name: thousandeyes
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: thousandeyes
+    binary: thousandeyes
+    main: .
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/thousandeyes/thousandeyes-cli/internal/version.Version={{.Version}}
+      - -X github.com/thousandeyes/thousandeyes-cli/internal/version.Commit={{.Commit}}
+      - -X github.com/thousandeyes/thousandeyes-cli/internal/version.Date={{.Date}}
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - id: default
+    ids:
+      - thousandeyes
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - Merge pull request
+      - Merge branch
+
+#homebrew_casks:
+#  - name: thousandeyes
+#    description: CLI for ThousandEyes API and agent workflows
+#    homepage: https://github.com/thousandeyes/thousandeyes-cli
+#    repository:
+#      owner: thousandeyes
+#      name: thousandeyes-cli
+#    directory: Casks
+#    binaries:
+#      - thousandeyes
+#    commit_msg_template: "homebrew: {{ .ProjectName }} {{ .Tag }} [skip ci]"
+#    commit_author:
+#      name: github-actions[bot]
+#      email: 41898282+github-actions[bot]@users.noreply.github.com
+#    hooks:
+#      post:
+#        install: |
+#          if OS.mac?
+#            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/thousandeyes"]
+#          end

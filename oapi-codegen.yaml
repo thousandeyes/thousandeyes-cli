@@ -1,0 +1,10 @@
+package: teapi
+output: client.gen.go
+generate:
+  models: true
+  client: true
+output-options:
+  include-operation-ids:
+    - getTests
+  overlay:
+    path: ../../api/thousandeyes.overlay.yaml

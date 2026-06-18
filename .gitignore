@@ -1,0 +1,8 @@
+.DS_Store
+/bin/
+.idea
+thousandeyes
+dist/
+.gocache
+coverage.out
+test-report.xml

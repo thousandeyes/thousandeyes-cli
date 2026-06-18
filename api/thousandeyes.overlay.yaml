@@ -1,0 +1,982 @@
+overlay: 1.0.0
+info:
+  title: thousandeyes-cli overlays
+  version: 1.0.0
+actions:
+  # account-group / account-groups
+  - target: "$.paths['/account-groups'].get"
+    update:
+      x-thousandeyes-cli-command: account-groups/list
+  - target: "$.paths['/account-groups'].post"
+    update:
+      x-thousandeyes-cli-command: account-groups/create
+  - target: "$.paths['/account-groups/{id}'].get"
+    update:
+      x-thousandeyes-cli-command: account-groups/get
+  - target: "$.paths['/account-groups/{id}'].put"
+    update:
+      x-thousandeyes-cli-command: account-groups/update
+  - target: "$.paths['/account-groups/{id}'].delete"
+    update:
+      x-thousandeyes-cli-command: account-groups/delete
+
+  # agent / agents
+  - target: "$.paths['/agents'].get"
+    update:
+      x-thousandeyes-cli-command: agents/list
+  - target: "$.paths['/agents/{agentId}'].get"
+    update:
+      x-thousandeyes-cli-command: agents/get
+  - target: "$.paths['/agents/{agentId}'].put"
+    update:
+      x-thousandeyes-cli-command: agents/update
+  - target: "$.paths['/agents/{agentId}'].delete"
+    update:
+      x-thousandeyes-cli-command: agents/delete
+  - target: "$.paths['/agents/{agentId}/cluster/assign'].post"
+    update:
+      x-thousandeyes-cli-command: agents/cluster/assign
+  - target: "$.paths['/agents/{agentId}/cluster/unassign'].post"
+    update:
+      x-thousandeyes-cli-command: agents/cluster/unassign
+  - target: "$.paths['/agents/notification-rules'].get"
+    update:
+      x-thousandeyes-cli-command: agents/notification-rules/list
+  - target: "$.paths['/agents/notification-rules/{notificationRuleId}'].get"
+    update:
+      x-thousandeyes-cli-command: agents/notification-rules/get
+  - target: "$.paths['/agents/proxies'].get"
+    update:
+      x-thousandeyes-cli-command: agents/proxies/list
+  - target: "$.paths['/agents/{agentId}/tests/assign'].post"
+    update:
+      x-thousandeyes-cli-command: agents/tests/assign
+  - target: "$.paths['/agents/{agentId}/tests/override'].post"
+    update:
+      x-thousandeyes-cli-command: agents/tests/override
+  - target: "$.paths['/agents/{agentId}/tests/unassign'].post"
+    update:
+      x-thousandeyes-cli-command: agents/tests/unassign
+
+  # alert-rule / alert-rules
+  - target: "$.paths['/alerts/rules'].get"
+    update:
+      x-thousandeyes-cli-command: alert-rules/list
+  - target: "$.paths['/alerts/rules'].post"
+    update:
+      x-thousandeyes-cli-command: alert-rules/create
+  - target: "$.paths['/alerts/rules/{ruleId}'].get"
+    update:
+      x-thousandeyes-cli-command: alert-rules/get
+  - target: "$.paths['/alerts/rules/{ruleId}'].put"
+    update:
+      x-thousandeyes-cli-command: alert-rules/update
+  - target: "$.paths['/alerts/rules/{ruleId}'].delete"
+    update:
+      x-thousandeyes-cli-command: alert-rules/delete
+
+  # alert-suppression-window / alert-suppression-windows
+  - target: "$.paths['/alert-suppression-windows'].get"
+    update:
+      x-thousandeyes-cli-command: alert-suppression-windows/list
+  - target: "$.paths['/alert-suppression-windows'].post"
+    update:
+      x-thousandeyes-cli-command: alert-suppression-windows/create
+  - target: "$.paths['/alert-suppression-windows/{windowId}'].get"
+    update:
+      x-thousandeyes-cli-command: alert-suppression-windows/get
+  - target: "$.paths['/alert-suppression-windows/{windowId}'].put"
+    update:
+      x-thousandeyes-cli-command: alert-suppression-windows/update
+  - target: "$.paths['/alert-suppression-windows/{windowId}'].delete"
+    update:
+      x-thousandeyes-cli-command: alert-suppression-windows/delete
+
+  # alerts    
+  - target: "$.paths['/alerts'].get"
+    update:
+      x-thousandeyes-cli-command: alerts/list
+  - target: "$.paths['/alerts/{alertId}'].get"
+    update:
+      x-thousandeyes-cli-command: alerts/get
+
+  # api-token / api-tokens
+  - target: "$.paths['/api-tokens'].post"
+    update:
+      x-thousandeyes-cli-command: api-tokens/regenerate
+
+  # audit-user-event / audit-user-events
+  - target: "$.paths['/audit-user-events'].get"
+    update:
+      x-thousandeyes-cli-command: audit-user-events/list
+
+  # autonomous-systems
+  - target: "$.paths['/autonomous-systems/{asn}/prefixes'].get"
+    update:
+      x-thousandeyes-cli-command: autonomous-systems-prefixes/list
+
+  # cloud-insights integrations
+  - target: "$.paths['/cloud-insights/integration/aws'].get"
+    update:
+      x-thousandeyes-cli-command: cloud-insights-integration/aws/list
+  - target: "$.paths['/cloud-insights/integration/aws/{integrationId}'].get"
+    update:
+      x-thousandeyes-cli-command: cloud-insights-integration/aws/get
+  - target: "$.paths['/cloud-insights/integration/aws/{integrationId}'].delete"
+    update:
+      x-thousandeyes-cli-command: cloud-insights-integration/aws/delete
+  - target: "$.paths['/cloud-insights/integration/aws/inventory'].post"
+    update:
+      x-thousandeyes-cli-command: cloud-insights-integration/aws/inventory/create
+  - target: "$.paths['/cloud-insights/integration/aws/flow-logs'].post"
+    update:
+      x-thousandeyes-cli-command: cloud-insights-integration/aws/flow-logs/create
+  - target: "$.paths['/cloud-insights/integration/aws/inventory/policies'].get"
+    update:
+      x-thousandeyes-cli-command: cloud-insights-integration/aws/inventory/policies/get
+  - target: "$.paths['/cloud-insights/integration/aws/flow-logs/policies'].get"
+    update:
+      x-thousandeyes-cli-command: cloud-insights-integration/aws/flow-logs/policies/get
+  - target: "$.paths['/cloud-insights/integration/aws/policy/settings'].get"
+    update:
+      x-thousandeyes-cli-command: cloud-insights-integration/aws/policy/settings/get
+  - target: "$.paths['/cloud-insights/integration/aws/policy/settings'].put"
+    update:
+      x-thousandeyes-cli-command: cloud-insights-integration/aws/policy/settings/update
+
+  - target: "$.paths['/cloud-insights/integration/azure'].get"
+    update:
+      x-thousandeyes-cli-command: cloud-insights-integration/azure/list
+  - target: "$.paths['/cloud-insights/integration/azure/{integrationId}'].get"
+    update:
+      x-thousandeyes-cli-command: cloud-insights-integration/azure/get
+  - target: "$.paths['/cloud-insights/integration/azure/{integrationId}'].delete"
+    update:
+      x-thousandeyes-cli-command: cloud-insights-integration/azure/delete
+  - target: "$.paths['/cloud-insights/integration/azure/inventory'].post"
+    update:
+      x-thousandeyes-cli-command: cloud-insights-integration/azure/inventory/create
+  - target: "$.paths['/cloud-insights/integration/azure/flow-logs'].post"
+    update:
+      x-thousandeyes-cli-command: cloud-insights-integration/azure/flow-logs/create
+  - target: "$.paths['/cloud-insights/integration/azure/policy/settings'].get"
+    update:
+      x-thousandeyes-cli-command: cloud-insights-integration/azure/policy/settings/get
+  - target: "$.paths['/cloud-insights/integration/azure/policy/settings'].put"
+    update:
+      x-thousandeyes-cli-command: cloud-insights-integration/azure/policy/settings/update
+
+  # connector / connectors
+  - target: "$.paths['/connectors/generic'].get"
+    update:
+      x-thousandeyes-cli-command: connectors-generic/list
+  - target: "$.paths['/connectors/generic'].post"
+    update:
+      x-thousandeyes-cli-command: connectors-generic/create
+  - target: "$.paths['/connectors/generic/{id}'].get"
+    update:
+      x-thousandeyes-cli-command: connectors-generic/get
+  - target: "$.paths['/connectors/generic/{id}'].put"
+    update:
+      x-thousandeyes-cli-command: connectors-generic/update
+  - target: "$.paths['/connectors/generic/{id}'].delete"
+    update:
+      x-thousandeyes-cli-command: connectors-generic/delete
+  - target: "$.paths['/connectors/generic/{id}/operations'].get"
+    update:
+      x-thousandeyes-cli-command: connectors-generic/operations/list
+  - target: "$.paths['/connectors/generic/{id}/operations'].put"
+    update:
+      x-thousandeyes-cli-command: connectors-generic/operations/update
+
+  # credential / credentials
+  - target: "$.paths['/credentials'].get"
+    update:
+      x-thousandeyes-cli-command: credentials/list
+  - target: "$.paths['/credentials'].post"
+    update:
+      x-thousandeyes-cli-command: credentials/create
+  - target: "$.paths['/credentials/{id}'].get"
+    update:
+      x-thousandeyes-cli-command: credentials/get
+  - target: "$.paths['/credentials/{id}'].put"
+    update:
+      x-thousandeyes-cli-command: credentials/update
+  - target: "$.paths['/credentials/{id}'].delete"
+    update:
+      x-thousandeyes-cli-command: credentials/delete
+
+  # dashboard / dashboards
+  - target: "$.paths['/dashboards'].get"
+    update:
+      x-thousandeyes-cli-command: dashboards/list
+  - target: "$.paths['/dashboards'].post"
+    update:
+      x-thousandeyes-cli-command: dashboards/create
+  - target: "$.paths['/dashboards/{dashboardId}'].get"
+    update:
+      x-thousandeyes-cli-command: dashboards/get
+  - target: "$.paths['/dashboards/{dashboardId}'].put"
+    update:
+      x-thousandeyes-cli-command: dashboards/update
+  - target: "$.paths['/dashboards/{dashboardId}'].delete"
+    update:
+      x-thousandeyes-cli-command: dashboards/delete
+  - target: "$.paths['/dashboards/{dashboardId}/widgets/{widgetId}'].get"
+    update:
+      x-thousandeyes-cli-command: dashboards/widgets/get
+  - target: "$.paths['/dashboards/{dashboardId}/widgets/{widgetId}/cards/{cardId}'].get"
+    update:
+      x-thousandeyes-cli-command: dashboards/widgets/cards/get
+  - target: "$.paths['/dashboards/{dashboardId}/widgets/{widgetId}/columns/{columnId}'].get"
+    update:
+      x-thousandeyes-cli-command: dashboards/widgets/columns/get
+  - target: "$.paths['/dashboards/filters'].get"
+    update:
+      x-thousandeyes-cli-command: dashboards/filters/list
+  - target: "$.paths['/dashboards/filters'].post"
+    update:
+      x-thousandeyes-cli-command: dashboards/filters/create
+  - target: "$.paths['/dashboards/filters/{id}'].get"
+    update:
+      x-thousandeyes-cli-command: dashboards/filters/get
+  - target: "$.paths['/dashboards/filters/{id}'].put"
+    update:
+      x-thousandeyes-cli-command: dashboards/filters/update
+  - target: "$.paths['/dashboards/filters/{id}'].delete"
+    update:
+      x-thousandeyes-cli-command: dashboards/filters/delete
+
+  # dashboard-snapshot / dashboard-snapshots
+  - target: "$.paths['/dashboard-snapshots'].get"
+    update:
+      x-thousandeyes-cli-command: dashboard-snapshots/list
+  - target: "$.paths['/dashboard-snapshots'].post"
+    update:
+      x-thousandeyes-cli-command: dashboard-snapshots/create
+  - target: "$.paths['/dashboard-snapshots/{snapshotId}'].get"
+    update:
+      x-thousandeyes-cli-command: dashboard-snapshots/get
+  - target: "$.paths['/dashboard-snapshots/{snapshotId}'].patch"
+    update:
+      x-thousandeyes-cli-command: dashboard-snapshots/update
+  - target: "$.paths['/dashboard-snapshots/{snapshotId}'].delete"
+    update:
+      x-thousandeyes-cli-command: dashboard-snapshots/delete
+  - target: "$.paths['/dashboard-snapshots/{snapshotId}/widgets/{widgetId}'].get"
+    update:
+      x-thousandeyes-cli-command: dashboard-snapshots/widgets/get
+
+  # emulated-device / emulated-devices
+  - target: "$.paths['/emulated-devices'].get"
+    update:
+      x-thousandeyes-cli-command: emulated-devices/list
+  - target: "$.paths['/emulated-devices'].post"
+    update:
+      x-thousandeyes-cli-command: emulated-devices/create
+
+  # endpoint
+  - target: "$.paths['/endpoint/agents'].get"
+    update:
+      x-thousandeyes-cli-command: endpoint/agents/list
+  - target: "$.paths['/endpoint/agents/{agentId}'].get"
+    update:
+      x-thousandeyes-cli-command: endpoint/agents/get
+  - target: "$.paths['/endpoint/agents/{agentId}'].patch"
+    update:
+      x-thousandeyes-cli-command: endpoint/agents/update
+  - target: "$.paths['/endpoint/agents/{agentId}'].delete"
+    update:
+      x-thousandeyes-cli-command: endpoint/agents/delete
+  - target: "$.paths['/endpoint/agents/filter'].post"
+    update:
+      x-thousandeyes-cli-command: endpoint/agents/filter
+  - target: "$.paths['/endpoint/agents/connection-string'].get"
+    update:
+      x-thousandeyes-cli-command: endpoint/agents/connection-string/get
+  - target: "$.paths['/endpoint/agents/{agentId}/enable'].post"
+    update:
+      x-thousandeyes-cli-command: endpoint/agents/enable
+  - target: "$.paths['/endpoint/agents/{agentId}/disable'].post"
+    update:
+      x-thousandeyes-cli-command: endpoint/agents/disable
+  - target: "$.paths['/endpoint/agents/{agentId}/transfer'].post"
+    update:
+      x-thousandeyes-cli-command: endpoint/agents/transfer
+  - target: "$.paths['/endpoint/agents/transfer/bulk'].post"
+    update:
+      x-thousandeyes-cli-command: endpoint/agents/bulk-transfer
+
+  - target: "$.paths['/endpoint/labels'].get"
+    update:
+      x-thousandeyes-cli-command: endpoint/labels/list
+  - target: "$.paths['/endpoint/labels'].post"
+    update:
+      x-thousandeyes-cli-command: endpoint/labels/create
+  - target: "$.paths['/endpoint/labels/{id}'].get"
+    update:
+      x-thousandeyes-cli-command: endpoint/labels/get
+  - target: "$.paths['/endpoint/labels/{id}'].patch"
+    update:
+      x-thousandeyes-cli-command: endpoint/labels/update
+  - target: "$.paths['/endpoint/labels/{id}'].delete"
+    update:
+      x-thousandeyes-cli-command: endpoint/labels/delete
+
+  - target: "$.paths['/endpoint/tests/scheduled-tests'].get"
+    update:
+      x-thousandeyes-cli-command: endpoint/tests/scheduled-tests/list
+  - target: "$.paths['/endpoint/tests/scheduled-tests/agent-to-server'].get"
+    update:
+      x-thousandeyes-cli-command: endpoint/tests/scheduled-tests/agent-to-server/list
+  - target: "$.paths['/endpoint/tests/scheduled-tests/agent-to-server'].post"
+    update:
+      x-thousandeyes-cli-command: endpoint/tests/scheduled-tests/agent-to-server/create
+  - target: "$.paths['/endpoint/tests/scheduled-tests/agent-to-server/{testId}'].get"
+    update:
+      x-thousandeyes-cli-command: endpoint/tests/scheduled-tests/agent-to-server/get
+  - target: "$.paths['/endpoint/tests/scheduled-tests/agent-to-server/{testId}'].patch"
+    update:
+      x-thousandeyes-cli-command: endpoint/tests/scheduled-tests/agent-to-server/update
+  - target: "$.paths['/endpoint/tests/scheduled-tests/agent-to-server/{testId}'].delete"
+    update:
+      x-thousandeyes-cli-command: endpoint/tests/scheduled-tests/agent-to-server/delete
+  - target: "$.paths['/endpoint/tests/scheduled-tests/agent-to-server/instant'].post"
+    update:
+      x-thousandeyes-cli-command: endpoint/tests/scheduled-tests/agent-to-server/run-instant-test
+
+  - target: "$.paths['/endpoint/tests/scheduled-tests/http-server'].get"
+    update:
+      x-thousandeyes-cli-command: endpoint/tests/scheduled-tests/http-server/list
+  - target: "$.paths['/endpoint/tests/scheduled-tests/http-server'].post"
+    update:
+      x-thousandeyes-cli-command: endpoint/tests/scheduled-tests/http-server/create
+  - target: "$.paths['/endpoint/tests/scheduled-tests/http-server/{testId}'].get"
+    update:
+      x-thousandeyes-cli-command: endpoint/tests/scheduled-tests/http-server/get
+  - target: "$.paths['/endpoint/tests/scheduled-tests/http-server/{testId}'].patch"
+    update:
+      x-thousandeyes-cli-command: endpoint/tests/scheduled-tests/http-server/update
+  - target: "$.paths['/endpoint/tests/scheduled-tests/http-server/{testId}'].delete"
+    update:
+      x-thousandeyes-cli-command: endpoint/tests/scheduled-tests/http-server/delete
+  - target: "$.paths['/endpoint/tests/scheduled-tests/http-server/instant'].post"
+    update:
+      x-thousandeyes-cli-command: endpoint/tests/scheduled-tests/http-server/run-instant-test
+
+  - target: "$.paths['/endpoint/tests/scheduled-tests/{testId}/run'].post"
+    update:
+      x-thousandeyes-cli-command: endpoint/tests/scheduled-tests/run
+
+  - target: "$.paths['/endpoint/tests/dynamic-tests/agent-to-server'].get"
+    update:
+      x-thousandeyes-cli-command: endpoint/tests/dynamic-tests/agent-to-server/list
+  - target: "$.paths['/endpoint/tests/dynamic-tests/agent-to-server'].post"
+    update:
+      x-thousandeyes-cli-command: endpoint/tests/dynamic-tests/agent-to-server/create
+  - target: "$.paths['/endpoint/tests/dynamic-tests/agent-to-server/{testId}'].get"
+    update:
+      x-thousandeyes-cli-command: endpoint/tests/dynamic-tests/agent-to-server/get
+  - target: "$.paths['/endpoint/tests/dynamic-tests/agent-to-server/{testId}'].patch"
+    update:
+      x-thousandeyes-cli-command: endpoint/tests/dynamic-tests/agent-to-server/update
+  - target: "$.paths['/endpoint/tests/dynamic-tests/agent-to-server/{testId}'].delete"
+    update:
+      x-thousandeyes-cli-command: endpoint/tests/dynamic-tests/agent-to-server/delete
+
+  - target: "$.paths['/endpoint/test-results/scheduled-tests/network/filter'].post"
+    update:
+      x-thousandeyes-cli-command: endpoint/test-results/scheduled-tests/network/filter
+  - target: "$.paths['/endpoint/test-results/scheduled-tests/{testId}/network/filter'].post"
+    update:
+      x-thousandeyes-cli-command: endpoint/test-results/scheduled-tests/network/test/filter
+  - target: "$.paths['/endpoint/test-results/scheduled-tests/{testId}/path-vis'].get"
+    update:
+      x-thousandeyes-cli-command: endpoint/test-results/scheduled-tests/path-vis/get
+  - target: "$.paths['/endpoint/test-results/scheduled-tests/{testId}/path-vis/agent/{agentId}/round/{roundId}'].get"
+    update:
+      x-thousandeyes-cli-command: endpoint/test-results/scheduled-tests/path-vis/get-details
+  - target: "$.paths['/endpoint/test-results/scheduled-tests/{testId}/http-server'].get"
+    update:
+      x-thousandeyes-cli-command: endpoint/test-results/scheduled-tests/http-server/test/get
+  - target: "$.paths['/endpoint/test-results/scheduled-tests/http-server/filter'].post"
+    update:
+      x-thousandeyes-cli-command: endpoint/test-results/scheduled-tests/http-server/filter
+  - target: "$.paths['/endpoint/test-results/scheduled-tests/{testId}/http-server/filter'].post"
+    update:
+      x-thousandeyes-cli-command: endpoint/test-results/scheduled-tests/http-server/test/filter
+
+  - target: "$.paths['/endpoint/test-results/dynamic-tests/{testId}/network/filter'].post"
+    update:
+      x-thousandeyes-cli-command: endpoint/test-results/dynamic-tests/network/test/filter
+  - target: "$.paths['/endpoint/test-results/dynamic-tests/{testId}/path-vis'].get"
+    update:
+      x-thousandeyes-cli-command: endpoint/test-results/dynamic-tests/path-vis/get
+  - target: "$.paths['/endpoint/test-results/dynamic-tests/{testId}/path-vis/agent/{agentId}/round/{roundId}'].get"
+    update:
+      x-thousandeyes-cli-command: endpoint/test-results/dynamic-tests/path-vis/get-details
+
+  - target: "$.paths['/endpoint/test-results/real-user-tests/filter'].post"
+    update:
+      x-thousandeyes-cli-command: endpoint/test-results/real-user-tests/filter
+  - target: "$.paths['/endpoint/test-results/real-user-tests/{id}'].get"
+    update:
+      x-thousandeyes-cli-command: endpoint/test-results/real-user-tests/get
+  - target: "$.paths['/endpoint/test-results/real-user-tests/pages/filter'].post"
+    update:
+      x-thousandeyes-cli-command: endpoint/test-results/real-user-tests/pages/filter
+  - target: "$.paths['/endpoint/test-results/real-user-tests/{id}/pages/{pageId}'].get"
+    update:
+      x-thousandeyes-cli-command: endpoint/test-results/real-user-tests/pages/get
+  - target: "$.paths['/endpoint/test-results/real-user-tests/networks/filter'].post"
+    update:
+      x-thousandeyes-cli-command: endpoint/test-results/real-user-tests/networks/filter
+
+  - target: "$.paths['/endpoint/test-results/local-networks'].get"
+    update:
+      x-thousandeyes-cli-command: endpoint/test-results/local-networks/list
+  - target: "$.paths['/endpoint/test-results/local-networks/topologies/filter'].post"
+    update:
+      x-thousandeyes-cli-command: endpoint/test-results/local-networks/topologies/filter
+  - target: "$.paths['/endpoint/test-results/local-networks/topologies/{networkTopologyId}'].get"
+    update:
+      x-thousandeyes-cli-command: endpoint/test-results/local-networks/topologies/get
+
+  # event / events
+  - target: "$.paths['/events'].get"
+    update:
+      x-thousandeyes-cli-command: events/list
+  - target: "$.paths['/events/{id}'].get"
+    update:
+      x-thousandeyes-cli-command: events/get
+
+  # internet-insight / internet-insights
+  - target: "$.paths['/internet-insights/catalog/providers/filter'].post"
+    update:
+      x-thousandeyes-cli-command: internet-insights/catalog/providers/filter
+  - target: "$.paths['/internet-insights/catalog/providers/{providerId}'].get"
+    update:
+      x-thousandeyes-cli-command: internet-insights/catalog/providers/get
+  - target: "$.paths['/internet-insights/outages/filter'].post"
+    update:
+      x-thousandeyes-cli-command: internet-insights/outages/filter
+  - target: "$.paths['/internet-insights/outages/net/{outageId}'].get"
+    update:
+      x-thousandeyes-cli-command: internet-insights/outages/net/get
+  - target: "$.paths['/internet-insights/outages/app/{outageId}'].get"
+    update:
+      x-thousandeyes-cli-command: internet-insights/outages/app/get
+
+  # monitor / monitors
+  - target: "$.paths['/monitors'].get"
+    update:
+      x-thousandeyes-cli-command: monitors/list
+
+  # network
+  - target: "$.paths['/network/path-vis/interface-groups'].get"
+    update:
+      x-thousandeyes-cli-command: path-vis-interface-groups/list
+  - target: "$.paths['/network/path-vis/interface-groups'].post"
+    update:
+      x-thousandeyes-cli-command: path-vis-interface-groups/create
+  - target: "$.paths['/network/path-vis/interface-groups/{interfaceGroupId}'].put"
+    update:
+      x-thousandeyes-cli-command: path-vis-interface-groups/update
+  - target: "$.paths['/network/path-vis/interface-groups/{interfaceGroupId}'].delete"
+    update:
+      x-thousandeyes-cli-command: path-vis-interface-groups/delete
+
+  # operation / operations
+  - target: "$.paths['/operations/{type}/{id}/connectors'].get"
+    update:
+      x-thousandeyes-cli-command: operations/connectors/get
+  - target: "$.paths['/operations/{type}/{id}/connectors'].put"
+    update:
+      x-thousandeyes-cli-command: operations/connectors/update
+  - target: "$.paths['/operations/webhooks'].get"
+    update:
+      x-thousandeyes-cli-command: operations/webhooks/list
+  - target: "$.paths['/operations/webhooks'].post"
+    update:
+      x-thousandeyes-cli-command: operations/webhooks/create
+  - target: "$.paths['/operations/webhooks/{id}'].get"
+    update:
+      x-thousandeyes-cli-command: operations/webhooks/get
+  - target: "$.paths['/operations/webhooks/{id}'].put"
+    update:
+      x-thousandeyes-cli-command: operations/webhooks/update
+  - target: "$.paths['/operations/webhooks/{id}'].delete"
+    update:
+      x-thousandeyes-cli-command: operations/webhooks/delete
+
+  # permission / permissions
+  - target: "$.paths['/permissions'].get"
+    update:
+      x-thousandeyes-cli-command: permissions/list
+
+  # quotas
+  - target: "$.paths['/quotas'].get"
+    update:
+      x-thousandeyes-cli-command: quotas/list
+  - target: "$.paths['/quotas/assign'].post"
+    update:
+      x-thousandeyes-cli-command: quotas/assign
+  - target: "$.paths['/quotas/unassign'].post"
+    update:
+      x-thousandeyes-cli-command: quotas/unassign
+
+  - target: "$.paths['/quotas/account-groups/assign'].post"
+    update:
+      x-thousandeyes-cli-command: quotas/account-groups/assign
+  - target: "$.paths['/quotas/account-groups/unassign'].post"
+    update:
+      x-thousandeyes-cli-command: quotas/account-groups/unassign
+
+  # role / roles
+  - target: "$.paths['/roles'].get"
+    update:
+      x-thousandeyes-cli-command: roles/list
+  - target: "$.paths['/roles'].post"
+    update:
+      x-thousandeyes-cli-command: roles/create
+  - target: "$.paths['/roles/{id}'].get"
+    update:
+      x-thousandeyes-cli-command: roles/get
+  - target: "$.paths['/roles/{id}'].put"
+    update:
+      x-thousandeyes-cli-command: roles/update
+  - target: "$.paths['/roles/{id}'].delete"
+    update:
+      x-thousandeyes-cli-command: roles/delete
+
+  # stream / streams
+  - target: "$.paths['/streams'].get"
+    update:
+      x-thousandeyes-cli-command: streams/list
+  - target: "$.paths['/streams'].post"
+    update:
+      x-thousandeyes-cli-command: streams/create
+  - target: "$.paths['/streams/{id}'].get"
+    update:
+      x-thousandeyes-cli-command: streams/get
+  - target: "$.paths['/streams/{id}'].put"
+    update:
+      x-thousandeyes-cli-command: streams/update
+  - target: "$.paths['/streams/{id}'].delete"
+    update:
+      x-thousandeyes-cli-command: streams/delete
+
+  # tag / tags
+  - target: "$.paths['/tags'].get"
+    update:
+      x-thousandeyes-cli-command: tags/list
+  - target: "$.paths['/tags'].post"
+    update:
+      x-thousandeyes-cli-command: tags/create
+  - target: "$.paths['/tags/{id}'].get"
+    update:
+      x-thousandeyes-cli-command: tags/get
+  - target: "$.paths['/tags/{id}'].put"
+    update:
+      x-thousandeyes-cli-command: tags/update
+  - target: "$.paths['/tags/{id}'].delete"
+    update:
+      x-thousandeyes-cli-command: tags/delete
+  - target: "$.paths['/tags/bulk'].post"
+    update:
+      x-thousandeyes-cli-command: tags/bulk-create
+  - target: "$.paths['/tags/assign'].post"
+    update:
+      x-thousandeyes-cli-command: tags/bulk-assign
+  - target: "$.paths['/tags/unassign'].post"
+    update:
+      x-thousandeyes-cli-command: tags/bulk-unassign
+  - target: "$.paths['/tags/{id}/assign'].post"
+    update:
+      x-thousandeyes-cli-command: tags/assign
+  - target: "$.paths['/tags/{id}/unassign'].post"
+    update:
+      x-thousandeyes-cli-command: tags/unassign
+
+  # template / templates
+  - target: "$.paths['/templates'].get"
+    update:
+      x-thousandeyes-cli-command: templates/list
+  - target: "$.paths['/templates'].post"
+    update:
+      x-thousandeyes-cli-command: templates/create
+  - target: "$.paths['/templates/{id}'].get"
+    update:
+      x-thousandeyes-cli-command: templates/get
+  - target: "$.paths['/templates/{id}'].put"
+    update:
+      x-thousandeyes-cli-command: templates/update
+  - target: "$.paths['/templates/{id}'].delete"
+    update:
+      x-thousandeyes-cli-command: templates/delete
+  - target: "$.paths['/templates/{id}/deploy'].post"
+    update:
+      x-thousandeyes-cli-command: templates/deploy
+  - target: "$.paths['/templates/{id}/sharing-settings'].get"
+    update:
+      x-thousandeyes-cli-command: templates/sharing-settings/get
+  - target: "$.paths['/templates/{id}/sharing-settings'].put"
+    update:
+      x-thousandeyes-cli-command: templates/sharing-settings/update
+
+  # test / tests
+  - target: "$.paths['/tests'].get"
+    update:
+      x-thousandeyes-cli-command: tests/list
+  - target: "$.paths['/tests/{testId}/snapshot'].post"
+    update:
+      x-thousandeyes-cli-command: tests/snapshot/create
+  - target: "$.paths['/tests/{testId}/run'].post"
+    update:
+      x-thousandeyes-cli-command: tests/run
+  - target: "$.paths['/tests/{testId}/history'].get"
+    update:
+      x-thousandeyes-cli-command: tests/history/get
+
+  - target: "$.paths['/tests/bgp'].get"
+    update:
+      x-thousandeyes-cli-command: tests/bgp/list
+  - target: "$.paths['/tests/bgp'].post"
+    update:
+      x-thousandeyes-cli-command: tests/bgp/create
+  - target: "$.paths['/tests/bgp/{testId}'].get"
+    update:
+      x-thousandeyes-cli-command: tests/bgp/get
+  - target: "$.paths['/tests/bgp/{testId}'].put"
+    update:
+      x-thousandeyes-cli-command: tests/bgp/update
+  - target: "$.paths['/tests/bgp/{testId}'].delete"
+    update:
+      x-thousandeyes-cli-command: tests/bgp/delete
+
+  - target: "$.paths['/tests/agent-to-server'].get"
+    update:
+      x-thousandeyes-cli-command: tests/agent-to-server/list
+  - target: "$.paths['/tests/agent-to-server'].post"
+    update:
+      x-thousandeyes-cli-command: tests/agent-to-server/create
+  - target: "$.paths['/tests/agent-to-server/{testId}'].get"
+    update:
+      x-thousandeyes-cli-command: tests/agent-to-server/get
+  - target: "$.paths['/tests/agent-to-server/{testId}'].put"
+    update:
+      x-thousandeyes-cli-command: tests/agent-to-server/update
+  - target: "$.paths['/tests/agent-to-server/{testId}'].delete"
+    update:
+      x-thousandeyes-cli-command: tests/agent-to-server/delete
+  - target: "$.paths['/tests/agent-to-server/instant'].post"
+    update:
+      x-thousandeyes-cli-command: tests/agent-to-server/instant
+
+  - target: "$.paths['/tests/agent-to-agent'].get"
+    update:
+      x-thousandeyes-cli-command: tests/agent-to-agent/list
+  - target: "$.paths['/tests/agent-to-agent'].post"
+    update:
+      x-thousandeyes-cli-command: tests/agent-to-agent/create
+  - target: "$.paths['/tests/agent-to-agent/{testId}'].get"
+    update:
+      x-thousandeyes-cli-command: tests/agent-to-agent/get
+  - target: "$.paths['/tests/agent-to-agent/{testId}'].put"
+    update:
+      x-thousandeyes-cli-command: tests/agent-to-agent/update
+  - target: "$.paths['/tests/agent-to-agent/{testId}'].delete"
+    update:
+      x-thousandeyes-cli-command: tests/agent-to-agent/delete
+  - target: "$.paths['/tests/agent-to-agent/instant'].post"
+    update:
+      x-thousandeyes-cli-command: tests/agent-to-agent/instant
+
+  - target: "$.paths['/tests/dns-server'].get"
+    update:
+      x-thousandeyes-cli-command: tests/dns-server/list
+  - target: "$.paths['/tests/dns-server'].post"
+    update:
+      x-thousandeyes-cli-command: tests/dns-server/create
+  - target: "$.paths['/tests/dns-server/{testId}'].get"
+    update:
+      x-thousandeyes-cli-command: tests/dns-server/get
+  - target: "$.paths['/tests/dns-server/{testId}'].put"
+    update:
+      x-thousandeyes-cli-command: tests/dns-server/update
+  - target: "$.paths['/tests/dns-server/{testId}'].delete"
+    update:
+      x-thousandeyes-cli-command: tests/dns-server/delete
+  - target: "$.paths['/tests/dns-server/instant'].post"
+    update:
+      x-thousandeyes-cli-command: tests/dns-server/instant
+
+  - target: "$.paths['/tests/dns-trace'].get"
+    update:
+      x-thousandeyes-cli-command: tests/dns-trace/list
+  - target: "$.paths['/tests/dns-trace'].post"
+    update:
+      x-thousandeyes-cli-command: tests/dns-trace/create
+  - target: "$.paths['/tests/dns-trace/{testId}'].get"
+    update:
+      x-thousandeyes-cli-command: tests/dns-trace/get
+  - target: "$.paths['/tests/dns-trace/{testId}'].put"
+    update:
+      x-thousandeyes-cli-command: tests/dns-trace/update
+  - target: "$.paths['/tests/dns-trace/{testId}'].delete"
+    update:
+      x-thousandeyes-cli-command: tests/dns-trace/delete
+  - target: "$.paths['/tests/dns-trace/instant'].post"
+    update:
+      x-thousandeyes-cli-command: tests/dns-trace/instant
+
+  - target: "$.paths['/tests/dnssec'].get"
+    update:
+      x-thousandeyes-cli-command: tests/dnssec/list
+  - target: "$.paths['/tests/dnssec'].post"
+    update:
+      x-thousandeyes-cli-command: tests/dnssec/create
+  - target: "$.paths['/tests/dnssec/{testId}'].get"
+    update:
+      x-thousandeyes-cli-command: tests/dnssec/get
+  - target: "$.paths['/tests/dnssec/{testId}'].put"
+    update:
+      x-thousandeyes-cli-command: tests/dnssec/update
+  - target: "$.paths['/tests/dnssec/{testId}'].delete"
+    update:
+      x-thousandeyes-cli-command: tests/dnssec/delete
+  - target: "$.paths['/tests/dnssec/instant'].post"
+    update:
+      x-thousandeyes-cli-command: tests/dnssec/instant
+
+  - target: "$.paths['/tests/http-server'].get"
+    update:
+      x-thousandeyes-cli-command: tests/http-server/list
+  - target: "$.paths['/tests/http-server'].post"
+    update:
+      x-thousandeyes-cli-command: tests/http-server/create
+  - target: "$.paths['/tests/http-server/{testId}'].get"
+    update:
+      x-thousandeyes-cli-command: tests/http-server/get
+  - target: "$.paths['/tests/http-server/{testId}'].put"
+    update:
+      x-thousandeyes-cli-command: tests/http-server/update
+  - target: "$.paths['/tests/http-server/{testId}'].delete"
+    update:
+      x-thousandeyes-cli-command: tests/http-server/delete
+  - target: "$.paths['/tests/http-server/instant'].post"
+    update:
+      x-thousandeyes-cli-command: tests/http-server/instant
+
+  - target: "$.paths['/tests/page-load'].get"
+    update:
+      x-thousandeyes-cli-command: tests/page-load/list
+  - target: "$.paths['/tests/page-load'].post"
+    update:
+      x-thousandeyes-cli-command: tests/page-load/create
+  - target: "$.paths['/tests/page-load/{testId}'].get"
+    update:
+      x-thousandeyes-cli-command: tests/page-load/get
+  - target: "$.paths['/tests/page-load/{testId}'].put"
+    update:
+      x-thousandeyes-cli-command: tests/page-load/update
+  - target: "$.paths['/tests/page-load/{testId}'].delete"
+    update:
+      x-thousandeyes-cli-command: tests/page-load/delete
+  - target: "$.paths['/tests/page-load/instant'].post"
+    update:
+      x-thousandeyes-cli-command: tests/page-load/instant
+
+  - target: "$.paths['/tests/web-transactions'].get"
+    update:
+      x-thousandeyes-cli-command: tests/web-transactions/list
+  - target: "$.paths['/tests/web-transactions'].post"
+    update:
+      x-thousandeyes-cli-command: tests/web-transactions/create
+  - target: "$.paths['/tests/web-transactions/{testId}'].get"
+    update:
+      x-thousandeyes-cli-command: tests/web-transactions/get
+  - target: "$.paths['/tests/web-transactions/{testId}'].put"
+    update:
+      x-thousandeyes-cli-command: tests/web-transactions/update
+  - target: "$.paths['/tests/web-transactions/{testId}'].delete"
+    update:
+      x-thousandeyes-cli-command: tests/web-transactions/delete
+  - target: "$.paths['/tests/web-transactions/instant'].post"
+    update:
+      x-thousandeyes-cli-command: tests/web-transactions/instant
+
+  - target: "$.paths['/tests/api'].get"
+    update:
+      x-thousandeyes-cli-command: tests/api/list
+  - target: "$.paths['/tests/api'].post"
+    update:
+      x-thousandeyes-cli-command: tests/api/create
+  - target: "$.paths['/tests/api/{testId}'].get"
+    update:
+      x-thousandeyes-cli-command: tests/api/get
+  - target: "$.paths['/tests/api/{testId}'].put"
+    update:
+      x-thousandeyes-cli-command: tests/api/update
+  - target: "$.paths['/tests/api/{testId}'].delete"
+    update:
+      x-thousandeyes-cli-command: tests/api/delete
+  - target: "$.paths['/tests/api/instant'].post"
+    update:
+      x-thousandeyes-cli-command: tests/api/instant
+
+  - target: "$.paths['/tests/ftp-server'].get"
+    update:
+      x-thousandeyes-cli-command: tests/ftp-server/list
+  - target: "$.paths['/tests/ftp-server'].post"
+    update:
+      x-thousandeyes-cli-command: tests/ftp-server/create
+  - target: "$.paths['/tests/ftp-server/{testId}'].get"
+    update:
+      x-thousandeyes-cli-command: tests/ftp-server/get
+  - target: "$.paths['/tests/ftp-server/{testId}'].put"
+    update:
+      x-thousandeyes-cli-command: tests/ftp-server/update
+  - target: "$.paths['/tests/ftp-server/{testId}'].delete"
+    update:
+      x-thousandeyes-cli-command: tests/ftp-server/delete
+  - target: "$.paths['/tests/ftp-server/instant'].post"
+    update:
+      x-thousandeyes-cli-command: tests/ftp-server/instant
+
+  - target: "$.paths['/tests/sip-server'].get"
+    update:
+      x-thousandeyes-cli-command: tests/sip-server/list
+  - target: "$.paths['/tests/sip-server'].post"
+    update:
+      x-thousandeyes-cli-command: tests/sip-server/create
+  - target: "$.paths['/tests/sip-server/{testId}'].get"
+    update:
+      x-thousandeyes-cli-command: tests/sip-server/get
+  - target: "$.paths['/tests/sip-server/{testId}'].put"
+    update:
+      x-thousandeyes-cli-command: tests/sip-server/update
+  - target: "$.paths['/tests/sip-server/{testId}'].delete"
+    update:
+      x-thousandeyes-cli-command: tests/sip-server/delete
+  - target: "$.paths['/tests/sip-server/instant'].post"
+    update:
+      x-thousandeyes-cli-command: tests/sip-server/instant
+
+  - target: "$.paths['/tests/voice'].get"
+    update:
+      x-thousandeyes-cli-command: tests/voice/list
+  - target: "$.paths['/tests/voice'].post"
+    update:
+      x-thousandeyes-cli-command: tests/voice/create
+  - target: "$.paths['/tests/voice/{testId}'].get"
+    update:
+      x-thousandeyes-cli-command: tests/voice/get
+  - target: "$.paths['/tests/voice/{testId}'].put"
+    update:
+      x-thousandeyes-cli-command: tests/voice/update
+  - target: "$.paths['/tests/voice/{testId}'].delete"
+    update:
+      x-thousandeyes-cli-command: tests/voice/delete
+  - target: "$.paths['/tests/voice/instant'].post"
+    update:
+      x-thousandeyes-cli-command: tests/voice/instant
+
+  # test-result / test-results
+  - target: "$.paths['/test-results/{testId}/network'].get"
+    update:
+      x-thousandeyes-cli-command: test-results/network/get
+  - target: "$.paths['/test-results/{testId}/path-vis'].get"
+    update:
+      x-thousandeyes-cli-command: test-results/path-vis/get
+  - target: "$.paths['/test-results/{testId}/path-vis/agent/{agentId}/round/{roundId}'].get"
+    update:
+      x-thousandeyes-cli-command: test-results/path-vis/agent/round/get
+  - target: "$.paths['/test-results/{testId}/http-server'].get"
+    update:
+      x-thousandeyes-cli-command: test-results/http-server/get
+  - target: "$.paths['/test-results/{testId}/page-load'].get"
+    update:
+      x-thousandeyes-cli-command: test-results/page-load/get
+  - target: "$.paths['/test-results/{testId}/page-load/agent/{agentId}/round/{roundId}'].get"
+    update:
+      x-thousandeyes-cli-command: test-results/page-load/agent/round/get
+  - target: "$.paths['/test-results/{testId}/web-transactions'].get"
+    update:
+      x-thousandeyes-cli-command: test-results/web-transactions/get
+  - target: "$.paths['/test-results/{testId}/web-transactions/agent/{agentId}/round/{roundId}'].get"
+    update:
+      x-thousandeyes-cli-command: test-results/web-transactions/agent/round/get
+  - target: "$.paths['/test-results/{testId}/web-transactions/agent/{agentId}/round/{roundId}/page/{pageId}'].get"
+    update:
+      x-thousandeyes-cli-command: test-results/web-transactions/agent/round/page/get
+  - target: "$.paths['/test-results/{testId}/api'].get"
+    update:
+      x-thousandeyes-cli-command: test-results/api/get
+  - target: "$.paths['/test-results/{testId}/api/agent/{agentId}/round/{roundId}'].get"
+    update:
+      x-thousandeyes-cli-command: test-results/api/agent/round/get
+  - target: "$.paths['/test-results/{testId}/ftp-server'].get"
+    update:
+      x-thousandeyes-cli-command: test-results/ftp-server/get
+  - target: "$.paths['/test-results/{testId}/dns-trace'].get"
+    update:
+      x-thousandeyes-cli-command: test-results/dns-trace/get
+  - target: "$.paths['/test-results/{testId}/dns-server/{serverId}'].get"
+    update:
+      x-thousandeyes-cli-command: test-results/dns-server/server/get
+  - target: "$.paths['/test-results/{testId}/dns-server'].get"
+    update:
+      x-thousandeyes-cli-command: test-results/dns-server/get
+  - target: "$.paths['/test-results/{testId}/dnssec'].get"
+    update:
+      x-thousandeyes-cli-command: test-results/dnssec/get
+  - target: "$.paths['/test-results/{testId}/sip-server'].get"
+    update:
+      x-thousandeyes-cli-command: test-results/sip-server/get
+  - target: "$.paths['/test-results/{testId}/rtp-server'].get"
+    update:
+      x-thousandeyes-cli-command: test-results/rtp-server/get
+  - target: "$.paths['/test-results/{testId}/bgp'].get"
+    update:
+      x-thousandeyes-cli-command: test-results/bgp/get
+  - target: "$.paths['/test-results/{testId}/bgp/routes/prefix/{prefixId}/round/{roundId}'].get"
+    update:
+      x-thousandeyes-cli-command: test-results/bgp/routes/prefix/round/get
+
+  # usage
+  - target: "$.paths['/usage'].get"
+    update:
+      x-thousandeyes-cli-command: usage/get
+  - target: "$.paths['/usage/units/enterprise-agents'].get"
+    update:
+      x-thousandeyes-cli-command: usage/units/enterprise-agents/list
+  - target: "$.paths['/usage/units/tests'].get"
+    update:
+      x-thousandeyes-cli-command: usage/units/tests/list
+
+  # user / users
+  - target: "$.paths['/users'].get"
+    update:
+      x-thousandeyes-cli-command: users/list
+  - target: "$.paths['/users'].post"
+    update:
+      x-thousandeyes-cli-command: users/create
+  - target: "$.paths['/users/{id}'].get"
+    update:
+      x-thousandeyes-cli-command: users/get
+  - target: "$.paths['/users/{id}'].put"
+    update:
+      x-thousandeyes-cli-command: users/update
+  - target: "$.paths['/users/{id}'].delete"
+    update:
+      x-thousandeyes-cli-command: users/delete
+  - target: "$.paths['/users/current'].get"
+    update:
+      x-thousandeyes-cli-command: users/current/get
+
+  # user-agent / user-agents
+  - target: "$.paths['/user-agents'].get"
+    update:
+      x-thousandeyes-cli-command: user-agents/list
+
