@@ -1,7 +1,7 @@
 GO ?= go
 GOFILES := $(shell find . -name '*.go' -not -path './vendor/*')
 
-.PHONY: deps fmt fmt-check validate test build ci
+.PHONY: deps fmt fmt-check validate vulncheck test build ci
 
 deps:
 	$(GO) mod download
@@ -16,6 +16,9 @@ validate: fmt-check
 	$(GO) vet ./...
 	$(GO) run ./cmd/tools/check-cli-command-coverage
 
+vulncheck:
+	$(GO) tool govulncheck ./...
+
 test:
 	$(GO) tool gotestsum --junitfile=test-report.xml --format standard-verbose -- \
 		-coverprofile=coverage.out -covermode=atomic ./...
@@ -24,4 +27,4 @@ build:
 	mkdir -p bin
 	CGO_ENABLED=0 $(GO) build -o bin/thousandeyes .
 
-ci: deps validate test build
+ci: deps validate vulncheck test build
