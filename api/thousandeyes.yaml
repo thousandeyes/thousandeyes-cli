@@ -16189,12 +16189,8 @@ components:
         String representation (containing newline characters) of client
         certificate, the private key must be placed first, then the certificate.
       example: |
-        -----BEGIN PRIVATE KEY-----
-        MIICUTCCAfugAwIBAgIBADANBgkqhkiG9w0BAQQFADBXMQswCQYDVQQGEwJDTjEL
-        -----END PRIVATE KEY-----
-        -----BEGIN CERTIFICATE-----
-        MIICUTCCAfugAwIBAgIBADANBgkqhkiG9w0BAQQFADBXMQswCQYDVQQGEwJDTjEL
-        -----END CERTIFICATE-----
+        <private-key-pem-content>
+        <certificate-pem-content>
     Tests_API_TestCustomHeaders:
       type: object
       properties:
@@ -20516,12 +20512,8 @@ components:
         String representation (containing newline characters) of client
         certificate, the private key must be placed first, then the certificate.
       example: |
-        -----BEGIN PRIVATE KEY-----
-        MIICUTCCAfugAwIBAgIBADANBgkqhkiG9w0BAQQFADBXMQswCQYDVQQGEwJDTjEL
-        -----END PRIVATE KEY-----
-        -----BEGIN CERTIFICATE-----
-        MIICUTCCAfugAwIBAgIBADANBgkqhkiG9w0BAQQFADBXMQswCQYDVQQGEwJDTjEL
-        -----END CERTIFICATE-----
+        <private-key-pem-content>
+        <certificate-pem-content>
     Instant_Tests_API_TestCustomHeaders:
       type: object
       properties:

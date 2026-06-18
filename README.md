@@ -19,7 +19,7 @@ curl -fsSL https://raw.githubusercontent.com/thousandeyes/thousandeyes-cli/main/
 Install a specific version:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/thousandeyes/thousandeyes-cli/main/scripts/install.sh | TE_VERSION=v1.2.3 sh
+curl -fsSL https://raw.githubusercontent.com/thousandeyes/thousandeyes-cli/main/scripts/install.sh | TE_VERSION=1.2.3 sh
 ```
 
 By default, the script installs to `/usr/local/bin` when writable, otherwise `~/.local/bin`. Set `INSTALL_DIR` to override the destination.
@@ -32,7 +32,7 @@ After install, the script prints shell-specific instructions for enabling tab co
 
 Requirements:
 
-- Go 1.24+
+- Go 1.25+
 - A ThousandEyes bearer token
 
 ```bash
@@ -216,7 +216,7 @@ Releases are built with [GoReleaser](https://goreleaser.com/) via the **Release*
 
 1. **Choose a version** using semantic versioning (for example `1.2.3`).
 
-2. **Run the workflow** in GitHub: **Actions** → **Release** → **Run workflow** → select the branch or commit to ship (for example `master`) → enter
+2. **Run the workflow** in GitHub: **Actions** → **Release** → **Run workflow** → select the branch or commit to ship (for example `main`) → enter
    the tag (e.g. `1.2.3`) → **Run workflow**.
 
 The workflow creates and pushes the tag on the selected ref, then publishes a GitHub Release with binaries and checksums, as configured in
