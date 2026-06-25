@@ -142,6 +142,7 @@ and a short example shape.
 - The CLI loads operations from `api/thousandeyes.yaml`.
 - Command routing comes from `x-thousandeyes-cli-command` attributes on the effective OpenAPI spec (for example, from `api/thousandeyes.yaml` directly
   or via `api/thousandeyes.overlay.yaml`).
+- Release binaries embed the spec and overlay so installed CLIs can load API commands without external `api/` files.
 - Each value is a slash-separated command path. Example: `tests/http-server/list` maps to `thousandeyes tests http-server list`.
 - Only operations with `x-thousandeyes-cli-command` are exposed as shorthand commands.
 - Nested command groups are supported, so paths with 3+ segments create subcommand trees automatically.

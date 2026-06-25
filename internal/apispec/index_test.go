@@ -25,6 +25,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	specassets "github.com/thousandeyes/thousandeyes-cli/api"
 )
 
 const (
@@ -35,7 +37,6 @@ const (
 	pathAgents               = "/agents"
 	overlayAlertsListCommand = "alerts/list"
 	overlayAgentsListCommand = "agents/list"
-	mkdirAllErrFmt           = "MkdirAll: %v"
 )
 
 func TestParseOperationIndexCapturesOperationsAndBodies(t *testing.T) {
@@ -205,50 +206,8 @@ paths: {}
 	}
 }
 
-func TestCandidateSpecPathsAndFindSpecPath(t *testing.T) {
+func TestLoadOperationIndexUsesEmbeddedSpec(t *testing.T) {
 	tmp := t.TempDir()
-	specDir := filepath.Join(tmp, "nested", "repo", "api")
-	if err := os.MkdirAll(specDir, 0o755); err != nil {
-		t.Fatalf(mkdirAllErrFmt, err)
-	}
-	specPath := filepath.Join(specDir, testSpecFilename)
-	if err := os.WriteFile(specPath, []byte(testSpecPathsYAML), 0o644); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
-
-	paths := candidateSpecPaths(filepath.Join(tmp, "nested", "repo", "cmd"))
-	if paths[0] != filepath.Join(tmp, "nested", "repo", "cmd", "api", testSpecFilename) {
-		t.Fatalf("unexpected first candidate: %q", paths[0])
-	}
-
-	chdirForTest(t, filepath.Join(tmp, "nested", "repo"))
-
-	got, err := findSpecPath()
-	if err != nil {
-		t.Fatalf("findSpecPath: %v", err)
-	}
-	gotEval, err := filepath.EvalSymlinks(got)
-	if err != nil {
-		t.Fatalf("EvalSymlinks(got): %v", err)
-	}
-	wantEval, err := filepath.EvalSymlinks(specPath)
-	if err != nil {
-		t.Fatalf("EvalSymlinks(specPath): %v", err)
-	}
-	if gotEval != wantEval {
-		t.Fatalf("findSpecPath: got %q want %q", gotEval, wantEval)
-	}
-}
-
-func TestLoadOperationIndexFromTempSpec(t *testing.T) {
-	tmp := t.TempDir()
-	raw := []byte(`
-paths:
-  /tests:
-    get:
-      operationId: getTests
-`)
-	_ = writeTempSpecFile(t, tmp, raw)
 	chdirForTest(t, tmp)
 
 	SetSpecRawForTesting(nil)
@@ -257,8 +216,9 @@ paths:
 	if err != nil {
 		t.Fatalf("LoadOperationIndex: %v", err)
 	}
-	if index["getTests"].Path != "/tests" || string(specRaw) != string(raw) {
-		t.Fatalf("unexpected loaded index: %#v", index["getTests"])
+	op := index["getAgents"]
+	if op.Path != pathAgents || op.Resource != "agents" || op.Verb != "list" || string(specRaw) != string(specassets.ThousandEyesSpec) {
+		t.Fatalf("expected embedded spec and overlay to load agents/list, got: %#v", op)
 	}
 }
 
@@ -413,19 +373,7 @@ func TestSplitCLICommand(t *testing.T) {
 	}
 }
 
-func TestLoadOperationIDOverlayFromFile(t *testing.T) {
-	tmp := t.TempDir()
-	apiDir := filepath.Join(tmp, "api")
-	if err := os.MkdirAll(apiDir, 0o755); err != nil {
-		t.Fatalf(mkdirAllErrFmt, err)
-	}
-
-	specPath := filepath.Join(apiDir, testSpecFilename)
-	if err := os.WriteFile(specPath, []byte(testSpecPathsYAML), 0o644); err != nil {
-		t.Fatalf("WriteFile(spec): %v", err)
-	}
-
-	overlayPath := filepath.Join(apiDir, "thousandeyes.overlay.yaml")
+func TestParseOperationIDOverlay(t *testing.T) {
 	overlayRaw := []byte(fmt.Sprintf(`
 overlay: 1.0.0
 actions:
@@ -438,15 +386,10 @@ actions:
       operationId: getAlerts
       x-thousandeyes-cli-command: alerts/get
 `, pathAlerts, overlayAlertsListCommand, pathAlertByID))
-	if err := os.WriteFile(overlayPath, overlayRaw, 0o644); err != nil {
-		t.Fatalf("WriteFile(overlay): %v", err)
-	}
 
-	chdirForTest(t, tmp)
-
-	overlay, err := loadOperationIDOverlay()
+	overlay, err := parseOperationIDOverlay(overlayRaw, "test overlay")
 	if err != nil {
-		t.Fatalf("loadOperationIDOverlay: %v", err)
+		t.Fatalf("parseOperationIDOverlay: %v", err)
 	}
 	if overlay == nil {
 		t.Fatal("expected overlay to be loaded")
@@ -459,19 +402,7 @@ actions:
 	}
 }
 
-func TestLoadOperationIDOverlayAllowsCLICommandOnly(t *testing.T) {
-	tmp := t.TempDir()
-	apiDir := filepath.Join(tmp, "api")
-	if err := os.MkdirAll(apiDir, 0o755); err != nil {
-		t.Fatalf(mkdirAllErrFmt, err)
-	}
-
-	specPath := filepath.Join(apiDir, testSpecFilename)
-	if err := os.WriteFile(specPath, []byte(testSpecPathsYAML), 0o644); err != nil {
-		t.Fatalf("WriteFile(spec): %v", err)
-	}
-
-	overlayPath := filepath.Join(apiDir, "thousandeyes.overlay.yaml")
+func TestParseOperationIDOverlayAllowsCLICommandOnly(t *testing.T) {
 	overlayRaw := []byte(fmt.Sprintf(`
 overlay: 1.0.0
 actions:
@@ -479,15 +410,10 @@ actions:
     update:
       x-thousandeyes-cli-command: %s
 `, pathAgents, overlayAgentsListCommand))
-	if err := os.WriteFile(overlayPath, overlayRaw, 0o644); err != nil {
-		t.Fatalf("WriteFile(overlay): %v", err)
-	}
 
-	chdirForTest(t, tmp)
-
-	overlay, err := loadOperationIDOverlay()
+	overlay, err := parseOperationIDOverlay(overlayRaw, "test overlay")
 	if err != nil {
-		t.Fatalf("loadOperationIDOverlay: %v", err)
+		t.Fatalf("parseOperationIDOverlay: %v", err)
 	}
 	if overlay == nil {
 		t.Fatal("expected overlay to be loaded")
@@ -568,17 +494,4 @@ func chdirForTest(t *testing.T, dir string) {
 	t.Cleanup(func() {
 		_ = os.Chdir(prevWD)
 	})
-}
-
-func writeTempSpecFile(t *testing.T, root string, raw []byte) string {
-	t.Helper()
-	specDir := filepath.Join(root, "api")
-	if err := os.MkdirAll(specDir, 0o755); err != nil {
-		t.Fatalf("MkdirAll(%s): %v", specDir, err)
-	}
-	specPath := filepath.Join(specDir, testSpecFilename)
-	if err := os.WriteFile(specPath, raw, 0o644); err != nil {
-		t.Fatalf("WriteFile(%s): %v", specPath, err)
-	}
-	return specPath
 }
