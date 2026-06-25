@@ -20,12 +20,11 @@ import (
 	"bufio"
 	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
 
+	specassets "github.com/thousandeyes/thousandeyes-cli/api"
 	"gopkg.in/yaml.v3"
 )
 
@@ -88,20 +87,13 @@ type componentParameterParseState struct {
 
 func LoadOperationIndex() (map[string]Operation, error) {
 	specOnce.Do(func() {
-		specPath, err := findSpecPath()
-		if err != nil {
-			specIndexErr = err
+		if len(specassets.ThousandEyesSpec) == 0 {
+			specIndexErr = fmt.Errorf("embedded OpenAPI spec is empty")
 			return
 		}
 
-		raw, err := os.ReadFile(specPath)
-		if err != nil {
-			specIndexErr = fmt.Errorf("read OpenAPI spec %s: %w", specPath, err)
-			return
-		}
-
-		specRaw = raw
-		specIndex, specIndexErr = ParseOperationIndex(raw)
+		specRaw = specassets.ThousandEyesSpec
+		specIndex, specIndexErr = ParseOperationIndex(specassets.ThousandEyesSpec)
 		if specIndexErr != nil {
 			return
 		}
@@ -467,67 +459,6 @@ func SetSpecRawForTesting(raw []byte) {
 	specOverlay = nil
 }
 
-func findSpecPath() (string, error) {
-	var candidates []string
-
-	if cwd, err := os.Getwd(); err == nil {
-		candidates = append(candidates, candidateSpecPaths(cwd)...)
-	}
-	if exe, err := os.Executable(); err == nil {
-		candidates = append(candidates, candidateSpecPaths(filepath.Dir(exe))...)
-	}
-
-	seen := map[string]struct{}{}
-	for _, candidate := range candidates {
-		if candidate == "" {
-			continue
-		}
-		if _, ok := seen[candidate]; ok {
-			continue
-		}
-		seen[candidate] = struct{}{}
-
-		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
-			return candidate, nil
-		}
-	}
-
-	return "", fmt.Errorf("could not find api/thousandeyes.yaml from cwd or executable path")
-}
-
-func candidateSpecPaths(start string) []string {
-	start = filepath.Clean(start)
-	var candidates []string
-	for dir := start; ; dir = filepath.Dir(dir) {
-		candidates = append(candidates, filepath.Join(dir, "api", "thousandeyes.yaml"))
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			break
-		}
-	}
-	return candidates
-}
-
-func findOverlayPath() string {
-	if cwd, err := os.Getwd(); err == nil {
-		for _, candidate := range candidateSpecPaths(cwd) {
-			overlayPath := strings.TrimSuffix(candidate, ".yaml") + ".overlay.yaml"
-			if info, err := os.Stat(overlayPath); err == nil && !info.IsDir() {
-				return overlayPath
-			}
-		}
-	}
-	if exe, err := os.Executable(); err == nil {
-		for _, candidate := range candidateSpecPaths(filepath.Dir(exe)) {
-			overlayPath := strings.TrimSuffix(candidate, ".yaml") + ".overlay.yaml"
-			if info, err := os.Stat(overlayPath); err == nil && !info.IsDir() {
-				return overlayPath
-			}
-		}
-	}
-	return ""
-}
-
 type operationIDOverlay struct {
 	Strict  bool
 	Entries map[overlayTarget]overlayOperationUpdate
@@ -560,19 +491,16 @@ type rawOverlayUpdate struct {
 var overlayTargetPattern = regexp.MustCompile(`^\$\.paths\['([^']+)'\]\.(get|post|put|patch|delete|head|options)$`)
 
 func loadOperationIDOverlay() (*operationIDOverlay, error) {
-	overlayPath := findOverlayPath()
-	if overlayPath == "" {
+	if len(specassets.ThousandEyesOverlay) == 0 {
 		return nil, nil
 	}
+	return parseOperationIDOverlay(specassets.ThousandEyesOverlay, "embedded OpenAPI overlay")
+}
 
-	raw, err := os.ReadFile(overlayPath)
-	if err != nil {
-		return nil, fmt.Errorf("read OpenAPI overlay %s: %w", overlayPath, err)
-	}
-
+func parseOperationIDOverlay(raw []byte, label string) (*operationIDOverlay, error) {
 	var parsed rawOverlay
 	if err := yaml.Unmarshal(raw, &parsed); err != nil {
-		return nil, fmt.Errorf("parse OpenAPI overlay %s: %w", overlayPath, err)
+		return nil, fmt.Errorf("parse OpenAPI overlay %s: %w", label, err)
 	}
 
 	overlay := &operationIDOverlay{
