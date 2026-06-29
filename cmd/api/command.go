@@ -39,6 +39,7 @@ type bodyFieldBinding struct {
 	FlagName    string
 	Kind        string // string, bool, number, json
 	Description string
+	Required    bool
 }
 
 // bodyArrayBinding maps repeated CLI values into a top-level JSON array request body.

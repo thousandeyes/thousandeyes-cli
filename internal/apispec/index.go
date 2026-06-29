@@ -72,6 +72,7 @@ type operationParseState struct {
 	currentRequestBody       []RequestBodyContent
 	currentContentType       string
 	inRequestBodyItems       bool
+	pendingSchemaRef         bool
 	currentParams            []Parameter
 	inlineParam              *Parameter
 	inlineDescriptionIndent  string
@@ -224,6 +225,7 @@ func (s *operationParseState) resetOperationFields() {
 	s.currentRequestBody = nil
 	s.currentContentType = ""
 	s.inRequestBodyItems = false
+	s.pendingSchemaRef = false
 	s.inlineParam = nil
 	s.inlineDescriptionIndent = ""
 }
@@ -292,6 +294,7 @@ func handleOperationMetadataLine(line, trimmed string, state *operationParseStat
 		state.inRequestBodyContent = false
 		state.currentContentType = ""
 		state.inRequestBodyItems = false
+		state.pendingSchemaRef = false
 		state.inlineParam = nil
 		state.inlineDescriptionIndent = ""
 	case strings.HasPrefix(line, indentLevel3+"requestBody:"):
@@ -307,6 +310,7 @@ func handleOperationMetadataLine(line, trimmed string, state *operationParseStat
 		state.inRequestBodyContent = false
 		state.currentContentType = ""
 		state.inRequestBodyItems = false
+		state.pendingSchemaRef = false
 		state.inlineParam = nil
 		state.inlineDescriptionIndent = ""
 	default:
@@ -346,6 +350,10 @@ func handleParameterLine(line, trimmed string, componentParams map[string]Parame
 }
 
 func handleRequestBodyLine(line, trimmed string, state *operationParseState) bool {
+	if consumePendingRequestBodySchemaRef(line, trimmed, state) {
+		return true
+	}
+
 	switch {
 	case strings.HasPrefix(line, "        content:"):
 		state.inRequestBodyContent = true
@@ -357,7 +365,12 @@ func handleRequestBodyLine(line, trimmed string, state *operationParseState) boo
 	case state.currentContentType != "" && strings.HasPrefix(line, "            schema:"):
 		state.inRequestBodyItems = false
 	case state.currentContentType != "" && strings.HasPrefix(line, "              $ref:") && len(state.currentRequestBody) > 0:
-		state.currentRequestBody[len(state.currentRequestBody)-1].SchemaRef = strings.Trim(strings.TrimSpace(strings.TrimPrefix(trimmed, "$ref:")), "'\"")
+		refValue := strings.TrimSpace(strings.TrimPrefix(trimmed, "$ref:"))
+		if isDescriptionBlockMarker(refValue) {
+			state.pendingSchemaRef = true
+			return true
+		}
+		state.currentRequestBody[len(state.currentRequestBody)-1].SchemaRef = strings.Trim(refValue, "'\"")
 	case state.currentContentType != "" && strings.HasPrefix(line, "              type:") && len(state.currentRequestBody) > 0:
 		state.currentRequestBody[len(state.currentRequestBody)-1].SchemaType = strings.TrimSpace(strings.TrimPrefix(trimmed, "type:"))
 	case state.currentContentType != "" && strings.HasPrefix(line, "              items:"):
@@ -367,6 +380,21 @@ func handleRequestBodyLine(line, trimmed string, state *operationParseState) boo
 	default:
 		return false
 	}
+	return true
+}
+
+func consumePendingRequestBodySchemaRef(line, trimmed string, state *operationParseState) bool {
+	if !state.pendingSchemaRef {
+		return false
+	}
+	state.pendingSchemaRef = false
+	if state.currentContentType == "" || len(state.currentRequestBody) == 0 {
+		return false
+	}
+	if !strings.HasPrefix(line, "                ") || trimmed == "" {
+		return false
+	}
+	state.currentRequestBody[len(state.currentRequestBody)-1].SchemaRef = strings.Trim(trimmed, "'\"")
 	return true
 }
 

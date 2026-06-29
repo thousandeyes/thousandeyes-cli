@@ -168,6 +168,7 @@ func buildBodyFieldBindings(apiCmd *cobra.Command, localCmd *cobra.Command, op a
 			FlagName:    flagName,
 			Kind:        property.Kind,
 			Description: property.Description,
+			Required:    property.Required,
 		})
 	}
 	return bindings
@@ -333,7 +334,13 @@ func registerBodyArrayFlag(cmd *cobra.Command, binding *bodyArrayBinding) {
 func formatBodyFieldFlagDescription(binding bodyFieldBinding) string {
 	description := normalizeFlagUsageDescription(binding.Description)
 	if description != "" {
+		if binding.Required {
+			return fmt.Sprintf("%s (required)", description)
+		}
 		return description
+	}
+	if binding.Required {
+		return fmt.Sprintf("JSON request body field %q (required)", binding.JSONKey)
 	}
 	return fmt.Sprintf("JSON request body field %q", binding.JSONKey)
 }
@@ -390,6 +397,10 @@ func buildAPIRequestBodyWithFieldOverrides(cmd *cobra.Command, bindings []bodyFi
 
 	if len(bindings) == 0 {
 		return nil, nil
+	}
+
+	if missing := missingRequiredBodyFlags(cmd, bindings); len(missing) > 0 {
+		return nil, fmt.Errorf("missing required request body flags: %s", strings.Join(missing, ", "))
 	}
 
 	if !hasChangedBodyFieldFlag(cmd, bindings) {
@@ -492,6 +503,20 @@ func hasChangedBodyFieldFlag(cmd *cobra.Command, bindings []bodyFieldBinding) bo
 		}
 	}
 	return false
+}
+
+func missingRequiredBodyFlags(cmd *cobra.Command, bindings []bodyFieldBinding) []string {
+	var missing []string
+	for _, binding := range bindings {
+		if !binding.Required {
+			continue
+		}
+		flag := cmd.Flags().Lookup(binding.FlagName)
+		if flag == nil || !flag.Changed || strings.TrimSpace(flag.Value.String()) == "" {
+			missing = append(missing, "--"+binding.FlagName)
+		}
+	}
+	return missing
 }
 
 func applyBodyFieldOverrides(cmd *cobra.Command, bindings []bodyFieldBinding, base map[string]any) error {

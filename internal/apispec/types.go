@@ -53,6 +53,7 @@ type Property struct {
 	Name        string
 	Kind        string
 	Description string
+	Required    bool
 }
 
 type schemaHint struct {
@@ -62,6 +63,7 @@ type schemaHint struct {
 	Description   string
 	Properties    map[string]*schemaHint
 	PropertyOrder []string
+	Required      []string
 	Items         *schemaHint
 	AllOf         []*schemaHint
 	AnyOf         []*schemaHint
