@@ -260,6 +260,90 @@ func TestRegisterBodyFieldFlagsUsesPropertyDescription(t *testing.T) {
 	}
 }
 
+func TestRegisterBodyFieldFlagsMarksRequiredUsage(t *testing.T) {
+	t.Parallel()
+
+	cmd := &cobra.Command{}
+	registerBodyFieldFlags(cmd, []bodyFieldBinding{{
+		JSONKey:     "url",
+		FlagName:    "url",
+		Kind:        "string",
+		Description: "Target URL.",
+		Required:    true,
+	}})
+
+	flag := cmd.Flags().Lookup("url")
+	if flag == nil {
+		t.Fatal("expected url flag to be registered")
+	}
+	if !strings.Contains(flag.Usage, "(required)") {
+		t.Fatalf("expected required marker in usage, got: %q", flag.Usage)
+	}
+}
+
+func TestBuildAPIRequestBodyWithFieldOverridesRejectsMissingRequiredFlags(t *testing.T) {
+	t.Parallel()
+
+	cmd := &cobra.Command{}
+	bindings := []bodyFieldBinding{
+		{JSONKey: "url", FlagName: "url", Kind: "string", Required: true},
+		{JSONKey: "agents", FlagName: "agents", Kind: "json", Required: true},
+		{JSONKey: "testName", FlagName: "test-name", Kind: "string"},
+	}
+	registerBodyFieldFlags(cmd, bindings)
+
+	if _, err := buildAPIRequestBodyWithFieldOverrides(cmd, bindings, nil); err == nil || !strings.Contains(err.Error(), "--url, --agents") {
+		t.Fatalf("expected missing required flags error, got %v", err)
+	}
+
+	if err := cmd.ParseFlags([]string{"--url", "https://example.com"}); err != nil {
+		t.Fatalf("ParseFlags: %v", err)
+	}
+	if _, err := buildAPIRequestBodyWithFieldOverrides(cmd, bindings, nil); err == nil || !strings.Contains(err.Error(), "--agents") {
+		t.Fatalf("expected missing agents error, got %v", err)
+	}
+}
+
+func TestBuildAPIRequestBodyWithFieldOverridesAcceptsRequiredFlags(t *testing.T) {
+	t.Parallel()
+
+	cmd := &cobra.Command{}
+	bindings := []bodyFieldBinding{
+		{JSONKey: "url", FlagName: "url", Kind: "string", Required: true},
+		{JSONKey: "agents", FlagName: "agents", Kind: "json", Required: true},
+		{JSONKey: "testName", FlagName: "test-name", Kind: "string"},
+	}
+	registerBodyFieldFlags(cmd, bindings)
+
+	if err := cmd.ParseFlags([]string{
+		"--url", "https://example.com",
+		"--agents", `[{"agentId":"273"}]`,
+		"--test-name", "demo",
+	}); err != nil {
+		t.Fatalf("ParseFlags: %v", err)
+	}
+
+	out, err := buildAPIRequestBodyWithFieldOverrides(cmd, bindings, nil)
+	if err != nil {
+		t.Fatalf("buildAPIRequestBodyWithFieldOverrides: %v", err)
+	}
+
+	var got map[string]any
+	if err := json.Unmarshal(out, &got); err != nil {
+		t.Fatalf("unmarshal result: %v", err)
+	}
+	if got["url"] != "https://example.com" {
+		t.Fatalf("url: got %#v want https://example.com", got["url"])
+	}
+	if got["testName"] != "demo" {
+		t.Fatalf("testName: got %#v want demo", got["testName"])
+	}
+	agents, ok := got["agents"].([]any)
+	if !ok || len(agents) != 1 {
+		t.Fatalf("agents: got %#v", got["agents"])
+	}
+}
+
 func TestBuildBodyArrayBindingForInlineJSONStringArray(t *testing.T) {
 	t.Parallel()
 

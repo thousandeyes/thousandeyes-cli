@@ -53,8 +53,9 @@ func TopLevelPropertiesFromSchemaRef(schemaRef string) []Property {
 		return nil
 	}
 	props := make(map[string]*schemaHint)
+	required := make(map[string]bool)
 	var order []string
-	mergeTopLevelSchemaProperties(root, map[string]bool{}, props, &order)
+	mergeTopLevelSchemaProperties(root, map[string]bool{}, props, required, &order)
 	if len(order) == 0 {
 		return nil
 	}
@@ -65,6 +66,7 @@ func TopLevelPropertiesFromSchemaRef(schemaRef string) []Property {
 			Name:        name,
 			Kind:        classifyBodyFieldKind(props[name]),
 			Description: resolveSchemaDescription(props[name], map[string]bool{}, 0),
+			Required:    required[name],
 		})
 	}
 	return properties
@@ -100,7 +102,7 @@ func resolveSchemaDescription(h *schemaHint, seen map[string]bool, depth int) st
 	return ""
 }
 
-func mergeTopLevelSchemaProperties(sch *schemaHint, seen map[string]bool, props map[string]*schemaHint, order *[]string) {
+func mergeTopLevelSchemaProperties(sch *schemaHint, seen map[string]bool, props map[string]*schemaHint, required map[string]bool, order *[]string) {
 	if sch == nil {
 		return
 	}
@@ -111,12 +113,15 @@ func mergeTopLevelSchemaProperties(sch *schemaHint, seen map[string]bool, props 
 		seen[sch.Ref] = true
 		defer delete(seen, sch.Ref)
 		if resolved := parseSchemaRef(sch.Ref); resolved != nil {
-			mergeTopLevelSchemaProperties(resolved, seen, props, order)
+			mergeTopLevelSchemaProperties(resolved, seen, props, required, order)
 		}
 		return
 	}
 	for _, item := range sch.AllOf {
-		mergeTopLevelSchemaProperties(item, seen, props, order)
+		mergeTopLevelSchemaProperties(item, seen, props, required, order)
+	}
+	for _, name := range sch.Required {
+		required[name] = true
 	}
 	for _, name := range sch.PropertyOrder {
 		if _, exists := props[name]; !exists {
@@ -315,7 +320,7 @@ func parseSchemaNodes(nodes []*yamlNode) *schemaHint {
 	for _, node := range nodes {
 		applySchemaNode(schema, node)
 	}
-	if schema.Ref == "" && schema.Type == "" && schema.Example == "" && schema.Description == "" && len(schema.Properties) == 0 && schema.Items == nil && len(schema.AllOf) == 0 && len(schema.AnyOf) == 0 {
+	if schema.Ref == "" && schema.Type == "" && schema.Example == "" && schema.Description == "" && len(schema.Properties) == 0 && len(schema.Required) == 0 && schema.Items == nil && len(schema.AllOf) == 0 && len(schema.AnyOf) == 0 {
 		return nil
 	}
 	return schema
@@ -400,6 +405,8 @@ func applyStructuredSchemaNode(schema *schemaHint, text string, children []*yaml
 	switch strings.TrimSuffix(text, ":") {
 	case "properties":
 		applySchemaProperties(schema, children)
+	case "required":
+		schema.Required = append(schema.Required, collectYAMLSequenceScalars(children)...)
 	case "items":
 		schema.Items = parseSchemaNodes(children)
 	case "allOf":
@@ -408,6 +415,18 @@ func applyStructuredSchemaNode(schema *schemaHint, text string, children []*yaml
 		schema.AnyOf = append(schema.AnyOf, parseCompositeSchemaChildren(children)...)
 	}
 	return true
+}
+
+func collectYAMLSequenceScalars(children []*yamlNode) []string {
+	values := make([]string, 0, len(children))
+	for _, child := range children {
+		text := strings.TrimSpace(strings.TrimPrefix(child.Text, "- "))
+		if text == "" {
+			continue
+		}
+		values = append(values, strings.Trim(text, "'\""))
+	}
+	return values
 }
 
 func applySchemaProperties(schema *schemaHint, children []*yamlNode) {

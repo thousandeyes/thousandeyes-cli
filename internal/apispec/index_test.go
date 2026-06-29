@@ -154,6 +154,40 @@ paths:
 	}
 }
 
+func TestParseOperationIndexCapturesFoldedRequestBodySchemaRef(t *testing.T) {
+	t.Parallel()
+
+	raw := []byte(`
+paths:
+  /tests/http-server/instant:
+    post:
+      operationId: createHttpServerInstantTest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: >-
+                #/components/schemas/Instant_Tests_API_HttpServerInstantTestRequest
+      responses:
+        '201':
+          description: Created
+`)
+
+	got, err := ParseOperationIndex(raw)
+	if err != nil {
+		t.Fatalf("ParseOperationIndex: %v", err)
+	}
+
+	op := got["createHttpServerInstantTest"]
+	if len(op.RequestBody) != 1 {
+		t.Fatalf("unexpected request body count: %#v", op.RequestBody)
+	}
+	if got := op.RequestBody[0].SchemaRef; got != "#/components/schemas/Instant_Tests_API_HttpServerInstantTestRequest" {
+		t.Fatalf("schema ref: got %q want %q", got, "#/components/schemas/Instant_Tests_API_HttpServerInstantTestRequest")
+	}
+}
+
 func TestParseOperationIndexRejectsMissingOperations(t *testing.T) {
 	t.Parallel()
 

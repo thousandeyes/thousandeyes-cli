@@ -52,6 +52,34 @@ func TestBuildBodyFieldBindingsMatchesOpenAPISchema(t *testing.T) {
 	}
 }
 
+func TestBuildBodyFieldBindingsForHTTPServerInstantIncludesRequiredFlags(t *testing.T) {
+	index, err := loadAPIOperationIndex()
+	if err != nil {
+		t.Fatalf("loadAPIOperationIndex: %v", err)
+	}
+
+	op, ok := index["createHttpServerInstantTest"]
+	if !ok {
+		t.Fatal("expected createHttpServerInstantTest operation")
+	}
+
+	gotBindings := buildBodyFieldBindings(newAPIResourceParentCommand("tests"), &cobra.Command{}, op)
+	if len(gotBindings) == 0 {
+		t.Fatal("expected request body bindings")
+	}
+
+	requiredByFlag := map[string]bool{}
+	for _, binding := range gotBindings {
+		requiredByFlag[binding.FlagName] = binding.Required
+	}
+	if !requiredByFlag["url"] {
+		t.Fatal("expected --url to be marked required")
+	}
+	if !requiredByFlag["agents"] {
+		t.Fatal("expected --agents to be marked required")
+	}
+}
+
 func assertNoBindingsForEmptySchema(t *testing.T, op apiOperation, gotBindings []bodyFieldBinding) {
 	t.Helper()
 	if len(gotBindings) != 0 {
@@ -81,6 +109,9 @@ func assertBindingMatches(t *testing.T, op apiOperation, index int, want apispec
 	}
 	if got.Description != want.Description {
 		t.Fatalf("%s binding %q: description got %q want %q", op.ID, got.JSONKey, got.Description, want.Description)
+	}
+	if got.Required != want.Required {
+		t.Fatalf("%s binding %q: required got %v want %v", op.ID, got.JSONKey, got.Required, want.Required)
 	}
 	if got.FlagName == "" {
 		t.Fatalf("%s binding %q: empty flag name", op.ID, got.JSONKey)

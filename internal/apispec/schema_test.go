@@ -30,6 +30,8 @@ components:
   schemas:
     Base:
       type: object
+      required:
+        - name
       properties:
         name:
           type: string
@@ -46,6 +48,8 @@ components:
       allOf:
         - $ref: '#/components/schemas/Base'
         - type: object
+          required:
+            - threshold
           properties:
             threshold:
               type: number
@@ -75,9 +79,9 @@ components:
 
 	props := TopLevelPropertiesFromSchemaRef(exampleSchemaRef)
 	wantProps := []Property{
-		{Name: "name", Kind: "string", Description: "Display name"},
+		{Name: "name", Kind: "string", Description: "Display name", Required: true},
 		{Name: "enabled", Kind: "bool"},
-		{Name: "threshold", Kind: "number", Description: "Threshold value"},
+		{Name: "threshold", Kind: "number", Description: "Threshold value", Required: true},
 		{Name: "child", Kind: "json", Description: "Child schema description"},
 		{Name: "payload", Kind: "json"},
 		{Name: "labels", Kind: "json", Description: "Contains list of test label IDs (get labelId from /labels endpoint)"},
@@ -168,6 +172,9 @@ func TestSchemaLowLevelHelpers(t *testing.T) {
 	}
 	if got := classifyBodyFieldKindDepth(&schemaHint{Ref: "#/components/schemas/DoesNotExist"}, 0); got != "json" {
 		t.Fatalf("classifyBodyFieldKindDepth: got %q want json", got)
+	}
+	if got := collectYAMLSequenceScalars([]*yamlNode{{Text: "- name"}, {Text: "- 'threshold'"}}); !reflect.DeepEqual(got, []string{"name", "threshold"}) {
+		t.Fatalf("collectYAMLSequenceScalars: got %#v", got)
 	}
 
 	parsed := parseSchemaBlock("Example:\n  type: object\n  properties:\n    name:\n      type: string\n")
