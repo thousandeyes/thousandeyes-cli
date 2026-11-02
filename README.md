@@ -3,6 +3,8 @@
 `thousandeyes` is a Go CLI for interacting with the ThousandEyes API.
 It is designed to be both human-usable and automation/agent-friendly.
 
+Note: This software communicates with Cisco ThousandEyes; use of Cisco ThousandEyes is subject to the Cisco [General Terms](https://www.cisco.com/c/dam/en_us/about/doing_business/legal/Cisco_General_Terms.pdf) and the applicable Offer Description, independent of the open source license governing this code.
+
 ## Features
 
 - Discover shorthand **`resource`** / **`verb`** commands directly from root help and nested help
