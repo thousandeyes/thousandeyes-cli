@@ -201,7 +201,7 @@ The version 1 JSON format contains `accountGroupId`, an optional suite `timeout`
 
 | Field | Meaning |
 | --- | --- |
-| `name` | Unique name within the suite. |
+| `name` | Unique, single-line name without control characters. |
 | `type` | `http-server` or `agent-to-server`. |
 | `config` | Native instant-test request payload, including its target and `agents`. Do not include read-only fields such as `type` or `testId`. |
 | `executionRule` | `blocking` (default), `non-blocking`, or `skipped`. |
@@ -223,7 +223,7 @@ The runner supports individual Cloud and Enterprise Agents. Cluster-agent comple
 - Exit `0`: every blocking check passed, or was explicitly skipped. Non-blocking assertion failures remain visible in reports.
 - Exit nonzero: a blocking assertion failed, execution was incomplete or timed out, an API/configuration error occurred, cancellation was requested, or a report could not be written. Infrastructure failures remain blocking even for a non-blocking test.
 - `--json` prints the sanitized report to standard output. `--json-report` and `--junit-report` write files using the same results. Parent directories must already exist.
-- Configuration and report paths must identify different files. Within the same directory, their filenames must also differ by more than letter case so the suite behaves consistently across filesystems.
+- Configuration and report paths must identify different files. Within the same directory, filenames that differ only by letter case or Unicode normalization are treated as collisions for portability.
 - JUnit contains a case per agent, or a case for a test with no agent outcomes. An additional execution-error case preserves any test-level failure not represented by agent outcomes. Non-blocking assertion failures are represented as JUnit failures and have an `executionRule` property, while the CLI exit status follows the configured rule. Consumers that independently gate on JUnit must account for that distinction.
 
 Reports contain run/test/agent identities, status, selected numeric measurements, and permitted platform links. Version 1 also includes optional `tests[].target` and `tests[].agents[].agentName` fields. Targets show the configured HTTP URL with user information, query strings, and fragments removed, or the network host and configured port. Names come from result metadata, falling back to the expanded creation response, without an extra agent lookup. Terminal output includes both fields; JUnit includes them as case properties.

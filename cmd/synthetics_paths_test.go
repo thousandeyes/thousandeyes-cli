@@ -109,8 +109,41 @@ func TestSyntheticsReportPathsRejectAliasedFilesBeforeExecution(t *testing.T) {
 	}
 }
 
+func TestSyntheticsReportPathsRejectUnicodeAliasesBeforeExecution(t *testing.T) {
+	server, requests := syntheticPathServer(t)
+	directory := t.TempDir()
+	suite := filepath.Join(directory, "suite.json")
+	payload := singleHTTPConfig("blocking")
+	if err := os.WriteFile(suite, []byte(payload), 0600); err != nil {
+		t.Fatal(err)
+	}
+	jsonPath := filepath.Join(directory, "caf\u00e9.out")
+	junitPath := filepath.Join(directory, "cafe\u0301.out")
+	for _, path := range []string{jsonPath, junitPath} {
+		if _, err := os.Lstat(path); !os.IsNotExist(err) {
+			t.Fatalf("expected initially missing output %q: %v", path, err)
+		}
+	}
+	err := executeSyntheticPaths(t, server.URL, suite, "--json-report", jsonPath, "--junit-report", junitPath)
+	if err == nil || !strings.Contains(err.Error(), "different paths") {
+		t.Errorf("expected Unicode-equivalent report path rejection, got %v", err)
+	}
+	if requests.Load() != 0 {
+		t.Errorf("Unicode-equivalent outputs submitted %d API requests", requests.Load())
+	}
+	for _, path := range []string{jsonPath, junitPath} {
+		if _, err := os.Lstat(path); !os.IsNotExist(err) {
+			t.Errorf("colliding report %q was created: %v", path, err)
+		}
+	}
+	data, err := os.ReadFile(suite)
+	if err != nil || string(data) != payload {
+		t.Fatalf("configuration was changed: %v", err)
+	}
+}
+
 func TestSyntheticsReportPathsAllowDistinctAliasedOutputs(t *testing.T) {
-	for _, scenario := range []string{"parent-alias", "final-output-symlink", "distinct-case-variant-parents"} {
+	for _, scenario := range []string{"parent-alias", "final-output-symlink", "distinct-case-variant-parents", "distinct-unicode-name-parents"} {
 		t.Run(scenario, func(t *testing.T) {
 			server, requests := syntheticPathServer(t)
 			directory := t.TempDir()
@@ -140,6 +173,15 @@ func TestSyntheticsReportPathsAllowDistinctAliasedOutputs(t *testing.T) {
 					t.Fatal(err)
 				}
 				jsonPath, junitPath = filepath.Join(upper, "result.json"), filepath.Join(lower, "RESULT.JSON")
+			}
+			if scenario == "distinct-unicode-name-parents" {
+				jsonDirectory, junitDirectory := filepath.Join(directory, "json"), filepath.Join(directory, "junit")
+				for _, path := range []string{jsonDirectory, junitDirectory} {
+					if err := os.Mkdir(path, 0700); err != nil {
+						t.Fatal(err)
+					}
+				}
+				jsonPath, junitPath = filepath.Join(jsonDirectory, "caf\u00e9.out"), filepath.Join(junitDirectory, "cafe\u0301.out")
 			}
 			if err := executeSyntheticPaths(t, server.URL, suite, "--json-report", jsonPath, "--junit-report", junitPath); err != nil {
 				t.Fatalf("distinct output entries should be accepted: %v", err)

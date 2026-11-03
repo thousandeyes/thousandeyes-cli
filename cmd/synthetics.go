@@ -15,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/thousandeyes/thousandeyes-cli/internal/config"
 	"github.com/thousandeyes/thousandeyes-cli/internal/synthetics"
+	"golang.org/x/text/unicode/norm"
 )
 
 func newSyntheticsCommand(getConfig func() config.Config) *cobra.Command {
@@ -128,7 +129,9 @@ func sameReportEntry(left, right string) (bool, error) {
 	if leftInfo != nil && rightInfo != nil && os.SameFile(leftInfo, rightInfo) {
 		return true, nil
 	}
-	if !strings.EqualFold(filepath.Base(left), filepath.Base(right)) {
+	leftName := norm.NFC.String(filepath.Base(left))
+	rightName := norm.NFC.String(filepath.Base(right))
+	if !strings.EqualFold(leftName, rightName) {
 		return false, nil
 	}
 	leftParent, err := os.Stat(filepath.Dir(left))
@@ -139,8 +142,8 @@ func sameReportEntry(left, right string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	// Reserve case-only name variants in the same directory on every OS, even
-	// when output entries do not exist yet, so suites remain portable.
+	// Reserve case and canonical Unicode variants in the same directory on
+	// every OS, even before outputs exist, so suites remain portable.
 	return os.SameFile(leftParent, rightParent), nil
 }
 
@@ -168,7 +171,11 @@ func reportEntryPath(path string) (string, error) {
 }
 
 func writeReportFile(path string, write func(io.Writer) error) error {
-	file, err := os.CreateTemp(filepath.Dir(path), ".thousandeyes-report-*")
+	entry, err := reportEntryPath(path)
+	if err != nil {
+		return fmt.Errorf("resolve report %q: %w", path, err)
+	}
+	file, err := os.CreateTemp(filepath.Dir(entry), ".thousandeyes-report-*")
 	if err != nil {
 		return fmt.Errorf("create report %q: %w", path, err)
 	}
@@ -181,7 +188,7 @@ func writeReportFile(path string, write func(io.Writer) error) error {
 	if err := file.Close(); err != nil {
 		return fmt.Errorf("close report %q: %w", path, err)
 	}
-	if err := os.Rename(temp, path); err != nil {
+	if err := os.Rename(temp, entry); err != nil {
 		return fmt.Errorf("save report %q: %w", path, err)
 	}
 	return nil

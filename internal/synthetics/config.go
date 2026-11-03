@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode"
 )
 
 const (
@@ -159,6 +160,11 @@ func (c Config) validate() error {
 func (t TestConfig) validate() error {
 	if strings.TrimSpace(t.Name) == "" || len(t.Name) > 200 {
 		return fmt.Errorf("name must contain between 1 and 200 bytes")
+	}
+	if strings.ContainsFunc(t.Name, func(character rune) bool {
+		return unicode.IsControl(character) || character == '\u2028' || character == '\u2029'
+	}) {
+		return fmt.Errorf("name must not contain control characters or line separators")
 	}
 	if t.Type != "http-server" && t.Type != "agent-to-server" {
 		return fmt.Errorf("unsupported synthetic test type; supported types are http-server and agent-to-server")
