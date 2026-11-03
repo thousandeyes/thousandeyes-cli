@@ -57,6 +57,74 @@ jobs:
             coverage.out
           if-no-files-found: warn
 
+  container-smoke:
+    name: Container smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Build and smoke test the container
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="thousandeyes-cli:smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          container="thousandeyes-smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          smoke_dir="$(mktemp -d)"
+          cleanup() {
+            docker rm --force "$container" >/dev/null 2>&1 || true
+            docker image rm "$image" >/dev/null 2>&1 || true
+            rm -rf "$smoke_dir"
+          }
+          trap cleanup EXIT
+
+          python3 - "$smoke_dir" <<'PY'
+          import json
+          import os
+          import pathlib
+          import sys
+
+          directory = pathlib.Path(sys.argv[1])
+          suite = json.loads(pathlib.Path("examples/synthetics/thousandeyes-ci.json").read_text())
+          for test in suite["tests"]:
+              test["executionRule"] = "skipped"
+          fixture = directory / "thousandeyes-ci.json"
+          fixture.write_text(json.dumps(suite))
+          os.chmod(directory, 0o755)
+          os.chmod(fixture, 0o644)
+          PY
+
+          docker build --tag "$image" .
+          docker run --rm --name "$container" \
+            --network none --read-only --user 65532:65532 \
+            --cap-drop ALL --security-opt no-new-privileges \
+            --env TE_TOKEN=container-smoke-fake-token \
+            --volume "$smoke_dir:/config:ro" \
+            "$image" synthetics run-tests \
+            --config /config/thousandeyes-ci.json --timeout 5s --json \
+            > "$smoke_dir/report.json"
+
+          python3 - "$smoke_dir/report.json" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          report = json.loads(pathlib.Path(sys.argv[1]).read_text())
+          expected = [
+              ("canary-http", "http-server", "https://canary.example.com/health"),
+              ("canary-network", "agent-to-server", "canary.example.com:443"),
+          ]
+          assert report["version"] == 1, report
+          assert report["runId"], report
+          assert len(report["tests"]) == len(expected), report
+          for result, (name, kind, target) in zip(report["tests"], expected):
+              actual = (result["name"], result["type"], result["target"], result["status"], result["executionRule"])
+              assert actual == (name, kind, target, "skipped", "skipped"), result
+              assert result["agents"] == [], result
+          assert "container-smoke-fake-token" not in json.dumps(report), report
+          PY
+
   goreleaser:
     name: GoReleaser Snapshot
     needs: test
