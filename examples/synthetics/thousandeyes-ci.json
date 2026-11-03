@@ -1,4 +1,5 @@
 {
+  "$schema": "../../schemas/thousandeyes-ci.schema.json",
   "version": 1,
   "accountGroupId": "123456",
   "timeout": "5m",

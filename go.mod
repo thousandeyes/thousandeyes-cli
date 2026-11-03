@@ -5,6 +5,7 @@ go 1.25.11
 toolchain go1.27.3
 
 require (
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/term v0.36.0

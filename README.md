@@ -197,6 +197,12 @@ The same command can run from a terminal, GitHub Actions, Jenkins, GitLab, or a 
 
 ### Configuration and evaluation
 
+Use the [JSON Schema](schemas/thousandeyes-ci.schema.json) for completion, field descriptions, examples, and validation in compatible editors and schema-based generators. The [example suite](examples/synthetics/thousandeyes-ci.json) already references it through `$schema`. In VS Code, completion inside `tests` offers HTTP and network test snippets. Replace their sample account group, agents, and targets before running a suite.
+
+For another repository, copy the schema alongside your suite and set `"$schema": "./thousandeyes-ci.schema.json"`. Adjust this relative path if you store the schema elsewhere. The CLI accepts `$schema` as editor metadata and never fetches it. Schema defaults are authoring hints; the CLI applies execution defaults.
+
+The schema covers the suite structure and the native fields inspected by the CLI. Additional native configuration and agent fields remain allowed and are validated by the ThousandEyes API. The CLI also checks constraints that the schema cannot fully express, including unique test names and agent IDs, the 200-byte UTF-8 name limit, and positive Go durations within the supported range.
+
 The version 1 JSON format contains `accountGroupId`, an optional suite `timeout` (default `5m`), an optional `pollInterval` (default `5s`), and a nonempty `tests` array. Each test defines:
 
 | Field | Meaning |

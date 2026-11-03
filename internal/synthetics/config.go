@@ -23,6 +23,7 @@ const (
 var numericID = regexp.MustCompile(`^[0-9]+$`)
 
 type Config struct {
+	Schema         string       `json:"$schema,omitempty"`
 	Version        int          `json:"version"`
 	AccountGroupID string       `json:"accountGroupId"`
 	Timeout        string       `json:"timeout,omitempty"`

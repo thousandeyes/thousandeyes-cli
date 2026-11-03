@@ -1,0 +1,344 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/thousandeyes/thousandeyes-cli/main/schemas/thousandeyes-ci.schema.json",
+  "$comment": "Copyright 2026 Cisco Systems, Inc. and its affiliates. SPDX-License-Identifier: Apache-2.0",
+  "title": "ThousandEyes synthetic CI suite",
+  "description": "Configure HTTP and network instant tests for thousandeyes synthetics run-tests. The CLI performs final validation, including unique test names and agent IDs, UTF-8 name lengths, and positive Go durations. The ThousandEyes API validates additional native payload options.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "tests"],
+  "properties": {
+    "$schema": {
+      "type": ["string", "null"],
+      "description": "Schema URL or relative path for editor assistance. The CLI accepts this metadata without fetching it.",
+      "examples": ["../../schemas/thousandeyes-ci.schema.json"]
+    },
+    "version": {
+      "const": 1,
+      "description": "Synthetic suite format version.",
+      "default": 1
+    },
+    "accountGroupId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9]*$",
+          "not": {"pattern": "[^0-9]"}
+        },
+        {"type": "null"}
+      ],
+      "description": "Account group ID as a digit string. Omit it, use an empty string, or use null to supply the account group through --account-group-id.",
+      "examples": ["123456"]
+    },
+    "timeout": {
+      "allOf": [{"$ref": "#/definitions/goDuration"}],
+      "description": "Deadline for the entire suite. Omitted, empty, or null uses 5m. --timeout overrides this value. The CLI checks positivity and duration overflow.",
+      "default": "5m",
+      "examples": ["5m", "1m30s"]
+    },
+    "pollInterval": {
+      "allOf": [{"$ref": "#/definitions/goDuration"}],
+      "description": "Interval between result polls. Omitted, empty, or null uses 5s. --poll-interval overrides this value. The CLI checks positivity and duration overflow.",
+      "default": "5s",
+      "examples": ["5s", "500ms"]
+    },
+    "tests": {
+      "type": "array",
+      "description": "Tests to create and evaluate. Each test name must be unique within the suite.",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "oneOf": [
+          {"$ref": "#/definitions/httpTest"},
+          {"$ref": "#/definitions/networkTest"}
+        ],
+        "defaultSnippets": [
+          {
+            "label": "HTTP health check",
+            "description": "Check an HTTP response and its timing from a selected agent.",
+            "body": {
+              "name": "canary-http",
+              "type": "http-server",
+              "config": {
+                "url": "https://canary.example.com/health",
+                "agents": [{"agentId": "6"}],
+                "networkMeasurements": false
+              },
+              "thresholds": {
+                "expectedResponseCodes": [200],
+                "maxResponseTime": 2000,
+                "maxTotalTime": 3000
+              }
+            }
+          },
+          {
+            "label": "Network connectivity check",
+            "description": "Check packet loss, average RTT, and jitter to a TCP target.",
+            "body": {
+              "name": "canary-network",
+              "type": "agent-to-server",
+              "config": {
+                "server": "canary.example.com",
+                "port": 443,
+                "protocol": "tcp",
+                "agents": [{"agentId": "6"}]
+              },
+              "thresholds": {
+                "maxLoss": 0,
+                "maxLatency": 150,
+                "maxJitter": 50
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "examples": [
+    {
+      "version": 1,
+      "accountGroupId": "123456",
+      "timeout": "5m",
+      "pollInterval": "5s",
+      "tests": [
+        {
+          "name": "canary-http",
+          "type": "http-server",
+          "config": {
+            "url": "https://canary.example.com/health",
+            "agents": [{"agentId": "6"}]
+          },
+          "thresholds": {"expectedResponseCodes": [200]}
+        },
+        {
+          "name": "canary-network",
+          "type": "agent-to-server",
+          "config": {
+            "server": "canary.example.com",
+            "port": 443,
+            "protocol": "tcp",
+            "agents": [{"agentId": "6"}]
+          },
+          "thresholds": {"maxLoss": 0}
+        }
+      ]
+    }
+  ],
+  "definitions": {
+    "goDuration": {
+      "description": "A Go duration, such as 5m, 1m30s, .5s, or +500ms. Supported units are ns, us, µs, μs, ms, s, m, and h. Empty or null selects the default. The CLI requires the parsed duration to be positive and fit its duration range.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^(\\+?(([0-9]+(\\.[0-9]*)?|\\.[0-9]+)(ns|us|µs|μs|ms|s|m|h))+)?$",
+          "not": {"pattern": "[\\r\\n\u2028\u2029]"}
+        },
+        {"type": "null"}
+      ]
+    },
+    "testName": {
+      "type": "string",
+      "description": "Unique, single-line test name without control characters. The CLI enforces a maximum of 200 UTF-8 bytes; this schema's 200-character bound cannot enforce the byte limit.",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "[^ \u00a0\u1680\u2000-\u200a\u202f\u205f\u3000]",
+      "not": {"pattern": "[\u0000-\u001f\u007f-\u009f\u2028\u2029]"},
+      "examples": ["canary-http", "canary-network"]
+    },
+    "executionRule": {
+      "enum": ["blocking", "non-blocking", "skipped", "", null],
+      "description": "Blocking assertion failures fail the CI run. Non-blocking assertion failures remain in reports. Skipped tests make no API calls. Infrastructure failures remain blocking. Omitted, empty, or null uses blocking.",
+      "default": "blocking"
+    },
+    "agentId": {
+      "type": "string",
+      "description": "Cloud or Enterprise Agent ID as an ASCII digit string. Leading zeros are allowed. Numeric JSON values are not accepted.",
+      "minLength": 1,
+      "pattern": "^[0-9]+$",
+      "not": {"pattern": "[^0-9]"},
+      "examples": ["6", "66"]
+    },
+    "agents": {
+      "type": "array",
+      "description": "Select 1 to 100 individual Cloud or Enterprise Agents. The CLI requires distinct agentId values, including when other agent properties differ. Cluster agents are not supported.",
+      "minItems": 1,
+      "maxItems": 100,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["agentId"],
+        "properties": {
+          "agentId": {"$ref": "#/definitions/agentId"},
+          "agentType": {
+            "type": ["string", "null"],
+            "not": {"const": "enterprise-cluster"},
+            "description": "Optional native agent type. The enterprise-cluster type is not supported. Other native agent fields pass through unchanged."
+          }
+        }
+      },
+      "examples": [[{"agentId": "6"}]]
+    },
+    "httpConfig": {
+      "type": "object",
+      "description": "Native HTTP instant-test creation payload. Additional options pass through unchanged and are validated by the ThousandEyes API. The CLI generates a unique testName for this run.",
+      "additionalProperties": true,
+      "required": ["url", "agents"],
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Absolute HTTP or HTTPS URL reachable from the selected agents. The CLI validates the URL with Go net/url.",
+          "pattern": "^https?://[^/?#]+",
+          "examples": ["https://canary.example.com/health"]
+        },
+        "agents": {"$ref": "#/definitions/agents"},
+        "direction": {
+          "const": "to-target",
+          "description": "Only measurements toward the target are supported."
+        },
+        "testId": false,
+        "type": false,
+        "createdDate": false,
+        "modifiedDate": false,
+        "savedEvent": false,
+        "_links": false
+      }
+    },
+    "networkConfig": {
+      "type": "object",
+      "description": "Native agent-to-server instant-test creation payload. Additional options pass through unchanged and are validated by the ThousandEyes API. The CLI generates a unique testName for this run.",
+      "additionalProperties": true,
+      "required": ["server", "agents"],
+      "properties": {
+        "server": {
+          "type": "string",
+          "description": "Target hostname or IP address reachable from the selected agents. For TCP or UDP creation, supply the port as a separate native option.",
+          "pattern": "[^\u0009-\u000d \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]",
+          "examples": ["canary.example.com", "192.0.2.10"]
+        },
+        "port": {
+          "description": "Native target port, usually an integer for TCP or UDP tests. This schema leaves the value unconstrained because the CLI forwards it unchanged; the ThousandEyes API validates it.",
+          "examples": [443]
+        },
+        "protocol": {
+          "enum": ["icmp", "tcp", "udp"],
+          "description": "Native network protocol. Omit it to use the API default. A present value must be icmp, tcp, or udp.",
+          "examples": ["tcp"]
+        },
+        "agents": {"$ref": "#/definitions/agents"},
+        "direction": {
+          "const": "to-target",
+          "description": "Only measurements toward the target are supported."
+        },
+        "testId": false,
+        "type": false,
+        "createdDate": false,
+        "modifiedDate": false,
+        "savedEvent": false,
+        "_links": false
+      }
+    },
+    "nonnegativeLimit": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "description": "Optional finite, nonnegative maximum. Omitted or null leaves this limit unset; zero is an active maximum.",
+      "examples": [0, 150]
+    },
+    "httpThresholds": {
+      "type": ["object", "null"],
+      "description": "HTTP pass criteria. Omitted or null accepts response codes 200 through 399 with no reported test error. Timing limits are optional. A native test error still fails even when its response code is expected.",
+      "additionalProperties": false,
+      "propertyNames": {"not": {"pattern": "[\\r\\n\u2028\u2029]"}},
+      "properties": {
+        "expectedResponseCodes": {
+          "type": ["array", "null"],
+          "description": "Distinct accepted HTTP status codes. A nonempty array replaces the default 200 through 399 policy. Omitted, null, or an empty array uses that default. Align the native desiredStatusCode option when expecting error responses.",
+          "uniqueItems": true,
+          "items": {"type": "integer", "minimum": 100, "maximum": 599},
+          "examples": [[200], [200, 204], [401]]
+        },
+        "maxResponseTime": {
+          "allOf": [{"$ref": "#/definitions/nonnegativeLimit"}],
+          "description": "Maximum time to first byte in milliseconds. Omitted or null is unset; zero is an active maximum.",
+          "examples": [2000]
+        },
+        "maxTotalTime": {
+          "allOf": [{"$ref": "#/definitions/nonnegativeLimit"}],
+          "description": "Maximum total HTTP time in milliseconds. Omitted or null is unset; zero is an active maximum.",
+          "examples": [3000]
+        }
+      },
+      "patternProperties": {
+        "^(maxLoss|maxLatency|maxJitter)$": {
+          "type": "null",
+          "description": "A null network criterion is accepted as unset for compatibility. Non-null network criteria require an agent-to-server test."
+        }
+      }
+    },
+    "networkThresholds": {
+      "type": ["object", "null"],
+      "description": "Network pass criteria. Packet loss defaults to zero. Average RTT and jitter limits are optional. Every selected agent must return applicable measurements.",
+      "additionalProperties": false,
+      "propertyNames": {"not": {"pattern": "[\\r\\n\u2028\u2029]"}},
+      "properties": {
+        "maxLoss": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Maximum end-to-end packet loss as a percentage. Omitted or null uses zero; zero is an active maximum.",
+          "default": 0,
+          "examples": [0, 1]
+        },
+        "maxLatency": {
+          "allOf": [{"$ref": "#/definitions/nonnegativeLimit"}],
+          "description": "Maximum average round-trip time in milliseconds. Omitted or null is unset; zero is an active maximum.",
+          "examples": [150]
+        },
+        "maxJitter": {
+          "allOf": [{"$ref": "#/definitions/nonnegativeLimit"}],
+          "description": "Maximum jitter in milliseconds. Omitted or null is unset; zero is an active maximum.",
+          "examples": [50]
+        }
+      },
+      "patternProperties": {
+        "^(maxResponseTime|maxTotalTime)$": {
+          "type": "null",
+          "description": "A null HTTP timing criterion is accepted as unset for compatibility. Non-null HTTP timing criteria require an http-server test."
+        },
+        "^expectedResponseCodes$": {
+          "type": ["array", "null"],
+          "maxItems": 0,
+          "description": "A null or empty HTTP response-code criterion is accepted as unset for compatibility. Nonempty response-code criteria require an http-server test."
+        }
+      }
+    },
+    "httpTest": {
+      "type": "object",
+      "title": "HTTP server test",
+      "description": "Create an HTTP instant test and evaluate its results for every configured agent.",
+      "additionalProperties": false,
+      "required": ["name", "type", "config"],
+      "properties": {
+        "name": {"$ref": "#/definitions/testName"},
+        "type": {"const": "http-server"},
+        "executionRule": {"$ref": "#/definitions/executionRule"},
+        "config": {"$ref": "#/definitions/httpConfig"},
+        "thresholds": {"$ref": "#/definitions/httpThresholds"}
+      }
+    },
+    "networkTest": {
+      "type": "object",
+      "title": "Agent-to-server test",
+      "description": "Create a network instant test and evaluate its results for every configured agent.",
+      "additionalProperties": false,
+      "required": ["name", "type", "config"],
+      "properties": {
+        "name": {"$ref": "#/definitions/testName"},
+        "type": {"const": "agent-to-server"},
+        "executionRule": {"$ref": "#/definitions/executionRule"},
+        "config": {"$ref": "#/definitions/networkConfig"},
+        "thresholds": {"$ref": "#/definitions/networkThresholds"}
+      }
+    }
+  }
+}
