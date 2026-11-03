@@ -87,6 +87,9 @@ func Run(ctx context.Context, config Config, options Options) (report Report, er
 			result.Agents = append(result.Agents, AgentResult{AgentID: id, Status: "pending"})
 		}
 		err = runTest(ctx, client, test, ids, report.RunID, index, &result)
+		if err == nil {
+			err = ctx.Err()
+		}
 		if err != nil {
 			markExecutionError(&result, err)
 		}
@@ -182,6 +185,9 @@ func runTest(ctx context.Context, client *apiClient, test TestConfig, ids []stri
 			client.enrichAgents(outcomes, names, instant.TestID)
 			result.Agents = outcomes
 			if complete {
+				if err := ctx.Err(); err != nil {
+					return err
+				}
 				result.Status = "passed"
 				for _, agent := range outcomes {
 					if agent.Status == "failed" {

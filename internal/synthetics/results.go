@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -184,6 +185,11 @@ func evaluateRow(test TestConfig, row resultRow) (AgentResult, bool, error) {
 	}
 	if hasResultError(row.ErrorType) || hasResultError(row.ErrorDetails) {
 		outcome.Status, outcome.Message = "failed", "agent reported a measurement error"
+		if test.Type == "http-server" && row.ResponseCode != nil {
+			if detail := httpResponseCodeMismatch(*row.ResponseCode, test.Thresholds.ExpectedResponseCodes); detail != "" {
+				outcome.Message += "; " + detail
+			}
+		}
 		return outcome, true, nil
 	}
 	switch test.Type {
@@ -203,20 +209,47 @@ func evaluateHTTPRow(outcome AgentResult, row resultRow, thresholds HTTPThreshol
 	if *row.ResponseCode < 100 || *row.ResponseCode > 599 || math.Trunc(*row.ResponseCode) != *row.ResponseCode {
 		return outcome, false, fmt.Errorf("result response contains an invalid HTTP response code")
 	}
-	accepted := *row.ResponseCode >= 200 && *row.ResponseCode <= 399
-	if len(thresholds.ExpectedResponseCodes) > 0 {
+	if message := httpResponseCodeMismatch(*row.ResponseCode, thresholds.ExpectedResponseCodes); message != "" {
+		outcome.Status, outcome.Message = "failed", message
+		return outcome, true, nil
+	}
+	return evaluateLimits(outcome, []metricLimit{{"responseTime", row.ResponseTime, thresholds.MaxResponseTime}, {"totalTime", row.TotalTime, thresholds.MaxTotalTime}})
+}
+
+func httpResponseCodeMismatch(code float64, expectedCodes []int) string {
+	if code < 100 || code > 599 || math.Trunc(code) != code {
+		return ""
+	}
+	accepted := code >= 200 && code <= 399
+	if len(expectedCodes) > 0 {
 		accepted = false
-		for _, code := range thresholds.ExpectedResponseCodes {
-			if float64(code) == *row.ResponseCode {
+		for _, expected := range expectedCodes {
+			if float64(expected) == code {
 				accepted = true
 			}
 		}
 	}
-	if !accepted {
-		outcome.Status, outcome.Message = "failed", "unexpected HTTP response code"
-		return outcome, true, nil
+	if accepted {
+		return ""
 	}
-	return evaluateLimits(outcome, []metricLimit{{"responseTime", row.ResponseTime, thresholds.MaxResponseTime}, {"totalTime", row.TotalTime, thresholds.MaxTotalTime}})
+	return fmt.Sprintf("HTTP response code %g did not match expected %s", code, expectedHTTPResponseCodes(expectedCodes))
+}
+
+func expectedHTTPResponseCodes(codes []int) string {
+	if len(codes) == 0 {
+		return "200-399"
+	}
+	const maxDisplayedCodes = 10
+	count := min(len(codes), maxDisplayedCodes)
+	values := make([]string, count)
+	for index, code := range codes[:count] {
+		values[index] = strconv.Itoa(code)
+	}
+	expected := "[" + strings.Join(values, ", ") + "]"
+	if len(codes) > count {
+		expected += fmt.Sprintf(" (%d more)", len(codes)-count)
+	}
+	return expected
 }
 
 func evaluateNetworkRow(outcome AgentResult, row resultRow, thresholds NetworkThresholds) (AgentResult, bool, error) {
@@ -228,7 +261,8 @@ func evaluateNetworkRow(outcome AgentResult, row resultRow, thresholds NetworkTh
 		maxLoss = *thresholds.MaxLoss
 	}
 	if *row.Loss > maxLoss {
-		outcome.Status, outcome.Message = "failed", "loss exceeded threshold"
+		outcome.Status = "failed"
+		outcome.Message = fmt.Sprintf("loss %g%% exceeded maximum %g%%", *row.Loss, maxLoss)
 		return outcome, true, nil
 	}
 	return evaluateLimits(outcome, []metricLimit{{"avgLatency", row.AvgLatency, thresholds.MaxLatency}, {"jitter", row.Jitter, thresholds.MaxJitter}})
@@ -250,7 +284,8 @@ func evaluateLimits(outcome AgentResult, limits []metricLimit) (AgentResult, boo
 			continue
 		}
 		if *limit.measurement > *limit.maximum {
-			outcome.Status, outcome.Message = "failed", limit.name+" exceeded threshold"
+			outcome.Status = "failed"
+			outcome.Message = fmt.Sprintf("%s %g ms exceeded maximum %g ms", limit.name, *limit.measurement, *limit.maximum)
 			return outcome, true, nil
 		}
 	}

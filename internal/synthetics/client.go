@@ -113,10 +113,10 @@ func (c *apiClient) do(ctx context.Context, method, endpoint string, payload []b
 		}
 		body, readErr := io.ReadAll(io.LimitReader(response.Body, (4<<20)+1))
 		response.Body.Close()
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if readErr != nil {
-			if ctx.Err() != nil {
-				return ctx.Err()
-			}
 			return fmt.Errorf("read ThousandEyes API response")
 		}
 		if len(body) > 4<<20 {
@@ -131,7 +131,11 @@ func (c *apiClient) do(ctx context.Context, method, endpoint string, payload []b
 		if response.StatusCode < 200 || response.StatusCode >= 300 {
 			return &statusError{code: response.StatusCode}
 		}
-		if err := json.Unmarshal(body, output); err != nil {
+		decodeErr := json.Unmarshal(body, output)
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if decodeErr != nil {
 			return fmt.Errorf("invalid JSON in ThousandEyes API response")
 		}
 		return nil
