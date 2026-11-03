@@ -212,6 +212,8 @@ The version 1 JSON format contains `accountGroupId`, an optional suite `timeout`
 | HTTP server | A response code from 200 through 399, with no reported test error. | `expectedResponseCodes` replaces the CI's accepted codes; `maxResponseTime` limits time to first byte in milliseconds; `maxTotalTime` limits total time in milliseconds. |
 | Agent to server | Measured end-to-end packet loss is zero. | `maxLoss` is a percentage; `maxLatency` limits average RTT in milliseconds; `maxJitter` limits jitter in milliseconds. |
 
+Each test uses `config` and one flat `thresholds` object. Optional HTTP timing and network latency/jitter limits are unset when omitted or `null`; `0` is an active maximum. Packet loss still defaults to zero. Additional native configuration and agent fields are preserved in the creation request.
+
 Every configured agent must return applicable results from one coherent round. Missing values remain pending until the suite deadline; they never become zero or success. A known primary measurement failure can fail immediately without waiting for timing values that may never arrive. Network diagnostics attached to HTTP tests do not automatically become additional gates. When testing an expected non-2xx/3xx response, also align the native payload's `desiredStatusCode` setting; a native test error remains a failed check even if its response code appears in `expectedResponseCodes`.
 
 For agent-to-server creation, set `server` to the hostname or IP address and supply a separate integer `port` for TCP or UDP targets, as shown in the example suite. The API response may combine them as `hostname:port`.

@@ -8,8 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math"
-	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -38,15 +36,6 @@ type TestConfig struct {
 	ExecutionRule string                     `json:"executionRule,omitempty"`
 	Config        map[string]json.RawMessage `json:"config"`
 	Thresholds    Thresholds                 `json:"thresholds,omitempty"`
-}
-
-type Thresholds struct {
-	ExpectedResponseCodes []int    `json:"expectedResponseCodes,omitempty"`
-	MaxResponseTime       *float64 `json:"maxResponseTime,omitempty"`
-	MaxTotalTime          *float64 `json:"maxTotalTime,omitempty"`
-	MaxLoss               *float64 `json:"maxLoss,omitempty"`
-	MaxLatency            *float64 `json:"maxLatency,omitempty"`
-	MaxJitter             *float64 `json:"maxJitter,omitempty"`
 }
 
 type Options struct {
@@ -185,78 +174,27 @@ func (t TestConfig) validate() error {
 			return fmt.Errorf("config must not contain read-only field %s", field)
 		}
 	}
-	if _, err := t.agentIDs(); err != nil {
-		return err
-	}
 	if direction, ok := t.Config["direction"]; ok && !bytes.Equal(direction, []byte(`"to-target"`)) {
 		return fmt.Errorf("only to-target network direction is supported")
 	}
 	if t.Type == "http-server" {
-		var target string
-		if err := json.Unmarshal(t.Config["url"], &target); err != nil {
-			return fmt.Errorf("HTTP config requires a URL string")
+		native, err := t.httpConfig()
+		if err != nil {
+			return err
 		}
-		u, err := url.Parse(target)
-		if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
-			return fmt.Errorf("HTTP config requires an absolute http or https URL")
-		}
-		if t.Thresholds.MaxLoss != nil || t.Thresholds.MaxLatency != nil || t.Thresholds.MaxJitter != nil {
-			return fmt.Errorf("network thresholds require an agent-to-server test")
+		if err := native.validate(); err != nil {
+			return err
 		}
 	} else {
-		var target string
-		if err := json.Unmarshal(t.Config["server"], &target); err != nil || strings.TrimSpace(target) == "" {
-			return fmt.Errorf("network config requires a server string")
+		native, err := t.networkConfig()
+		if err != nil {
+			return err
 		}
-		if raw, ok := t.Config["protocol"]; ok {
-			var protocol string
-			if err := json.Unmarshal(raw, &protocol); err != nil || (protocol != "icmp" && protocol != "tcp" && protocol != "udp") {
-				return fmt.Errorf("network protocol must be icmp, tcp, or udp")
-			}
-		}
-		if t.Thresholds.MaxResponseTime != nil || t.Thresholds.MaxTotalTime != nil || len(t.Thresholds.ExpectedResponseCodes) > 0 {
-			return fmt.Errorf("HTTP thresholds require an http-server test")
+		if err := native.validate(); err != nil {
+			return err
 		}
 	}
-	for name, value := range map[string]*float64{"maxResponseTime": t.Thresholds.MaxResponseTime, "maxTotalTime": t.Thresholds.MaxTotalTime, "maxLoss": t.Thresholds.MaxLoss, "maxLatency": t.Thresholds.MaxLatency, "maxJitter": t.Thresholds.MaxJitter} {
-		if value != nil && (*value < 0 || math.IsInf(*value, 0) || math.IsNaN(*value)) {
-			return fmt.Errorf("%s must be a finite nonnegative number", name)
-		}
-	}
-	if t.Thresholds.MaxLoss != nil && *t.Thresholds.MaxLoss > 100 {
-		return fmt.Errorf("maxLoss must not exceed 100 percent")
-	}
-	seenCodes := make(map[int]bool)
-	for _, code := range t.Thresholds.ExpectedResponseCodes {
-		if code < 100 || code > 599 || seenCodes[code] {
-			return fmt.Errorf("expectedResponseCodes requires distinct valid HTTP status codes")
-		}
-		seenCodes[code] = true
-	}
-	return nil
-}
-
-func (t TestConfig) agentIDs() ([]string, error) {
-	var agents []struct {
-		AgentID   string `json:"agentId"`
-		AgentType string `json:"agentType"`
-	}
-	if err := json.Unmarshal(t.Config["agents"], &agents); err != nil || len(agents) == 0 || len(agents) > 100 {
-		return nil, fmt.Errorf("config requires between 1 and 100 agents")
-	}
-	ids := make([]string, 0, len(agents))
-	seen := make(map[string]bool)
-	for _, agent := range agents {
-		if !numericID.MatchString(agent.AgentID) || seen[agent.AgentID] {
-			return nil, fmt.Errorf("config requires distinct numeric string agent IDs")
-		}
-		if agent.AgentType == "enterprise-cluster" {
-			return nil, fmt.Errorf("cluster agent result completeness is not supported")
-		}
-		seen[agent.AgentID] = true
-		ids = append(ids, agent.AgentID)
-	}
-	return ids, nil
+	return t.Thresholds.validate(t.Type)
 }
 
 func parseDuration(value string, fallback time.Duration, field string) (time.Duration, error) {

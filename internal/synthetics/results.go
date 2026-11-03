@@ -186,40 +186,52 @@ func evaluateRow(test TestConfig, row resultRow) (AgentResult, bool, error) {
 		outcome.Status, outcome.Message = "failed", "agent reported a measurement error"
 		return outcome, true, nil
 	}
-	if test.Type == "http-server" {
-		if row.ResponseCode == nil {
-			return outcome, false, nil
-		}
-		if *row.ResponseCode < 100 || *row.ResponseCode > 599 || math.Trunc(*row.ResponseCode) != *row.ResponseCode {
-			return outcome, false, fmt.Errorf("result response contains an invalid HTTP response code")
-		}
-		accepted := *row.ResponseCode >= 200 && *row.ResponseCode <= 399
-		if len(test.Thresholds.ExpectedResponseCodes) > 0 {
-			accepted = false
-			for _, code := range test.Thresholds.ExpectedResponseCodes {
-				if float64(code) == *row.ResponseCode {
-					accepted = true
-				}
+	switch test.Type {
+	case "http-server":
+		return evaluateHTTPRow(outcome, row, test.Thresholds.HTTPThresholds)
+	case "agent-to-server":
+		return evaluateNetworkRow(outcome, row, test.Thresholds.NetworkThresholds)
+	default:
+		return outcome, false, fmt.Errorf("unsupported synthetic test type")
+	}
+}
+
+func evaluateHTTPRow(outcome AgentResult, row resultRow, thresholds HTTPThresholds) (AgentResult, bool, error) {
+	if row.ResponseCode == nil {
+		return outcome, false, nil
+	}
+	if *row.ResponseCode < 100 || *row.ResponseCode > 599 || math.Trunc(*row.ResponseCode) != *row.ResponseCode {
+		return outcome, false, fmt.Errorf("result response contains an invalid HTTP response code")
+	}
+	accepted := *row.ResponseCode >= 200 && *row.ResponseCode <= 399
+	if len(thresholds.ExpectedResponseCodes) > 0 {
+		accepted = false
+		for _, code := range thresholds.ExpectedResponseCodes {
+			if float64(code) == *row.ResponseCode {
+				accepted = true
 			}
 		}
-		if !accepted {
-			outcome.Status, outcome.Message = "failed", "unexpected HTTP response code"
-			return outcome, true, nil
-		}
-		return evaluateLimits(outcome, []metricLimit{{"responseTime", row.ResponseTime, test.Thresholds.MaxResponseTime}, {"totalTime", row.TotalTime, test.Thresholds.MaxTotalTime}})
 	}
+	if !accepted {
+		outcome.Status, outcome.Message = "failed", "unexpected HTTP response code"
+		return outcome, true, nil
+	}
+	return evaluateLimits(outcome, []metricLimit{{"responseTime", row.ResponseTime, thresholds.MaxResponseTime}, {"totalTime", row.TotalTime, thresholds.MaxTotalTime}})
+}
+
+func evaluateNetworkRow(outcome AgentResult, row resultRow, thresholds NetworkThresholds) (AgentResult, bool, error) {
 	if row.Loss == nil {
 		return outcome, false, nil
 	}
 	maxLoss := 0.0
-	if test.Thresholds.MaxLoss != nil {
-		maxLoss = *test.Thresholds.MaxLoss
+	if thresholds.MaxLoss != nil {
+		maxLoss = *thresholds.MaxLoss
 	}
 	if *row.Loss > maxLoss {
 		outcome.Status, outcome.Message = "failed", "loss exceeded threshold"
 		return outcome, true, nil
 	}
-	return evaluateLimits(outcome, []metricLimit{{"avgLatency", row.AvgLatency, test.Thresholds.MaxLatency}, {"jitter", row.Jitter, test.Thresholds.MaxJitter}})
+	return evaluateLimits(outcome, []metricLimit{{"avgLatency", row.AvgLatency, thresholds.MaxLatency}, {"jitter", row.Jitter, thresholds.MaxJitter}})
 }
 
 type metricLimit struct {

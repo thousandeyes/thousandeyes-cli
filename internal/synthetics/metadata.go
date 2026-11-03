@@ -4,7 +4,6 @@
 package synthetics
 
 import (
-	"encoding/json"
 	"net"
 	"net/url"
 	"regexp"
@@ -37,9 +36,11 @@ func reportText(value, token string, limit int) string {
 func reportTarget(test TestConfig, token string) string {
 	var target string
 	if test.Type == "http-server" {
-		if err := json.Unmarshal(test.Config["url"], &target); err != nil {
+		native, err := test.httpConfig()
+		if err != nil {
 			return ""
 		}
+		target = native.URL
 		u, err := url.Parse(target)
 		if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") || u.Opaque != "" {
 			return ""
@@ -53,9 +54,11 @@ func reportTarget(test TestConfig, token string) string {
 		}
 		target = u.String()
 	} else {
-		if err := json.Unmarshal(test.Config["server"], &target); err != nil {
+		native, err := test.networkConfig()
+		if err != nil {
 			return ""
 		}
+		target = native.Server
 		host := target
 		if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") && net.ParseIP(host[1:len(host)-1]) != nil {
 			host = host[1 : len(host)-1]
@@ -64,9 +67,8 @@ func reportTarget(test TestConfig, token string) string {
 			return ""
 		}
 		target = host
-		var port int
-		if json.Unmarshal(test.Config["port"], &port) == nil && port > 0 && port <= 65535 {
-			target = net.JoinHostPort(host, strconv.Itoa(port))
+		if native.Port != nil && *native.Port > 0 && *native.Port <= 65535 {
+			target = net.JoinHostPort(host, strconv.Itoa(*native.Port))
 		}
 	}
 	if utf8.RuneCountInString(target) > 2048 {

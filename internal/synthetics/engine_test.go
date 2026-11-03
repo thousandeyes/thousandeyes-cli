@@ -59,13 +59,13 @@ func TestMeasurementEvaluationPreservesMissingValuesAndNativeOutcomes(t *testing
 	}{
 		{name: "native None is successful", kind: "http-server", payload: `{"responseCode":200,"errorType":"None"}`, status: "passed", ready: true},
 		{name: "missing response is pending", kind: "http-server", payload: `{"errorType":"None"}`, status: "pending"},
-		{name: "missing selected timing is pending", kind: "http-server", payload: `{"responseCode":200}`, thresholds: Thresholds{MaxTotalTime: &limit}, status: "pending"},
-		{name: "explicit expected non2xx", kind: "http-server", payload: `{"responseCode":404}`, thresholds: Thresholds{ExpectedResponseCodes: []int{404}}, status: "passed", ready: true},
-		{name: "known error finishes without timings", kind: "http-server", payload: `{"errorType":"Connection","errorDetails":"credential-secret"}`, thresholds: Thresholds{MaxTotalTime: &limit}, status: "failed", ready: true},
+		{name: "missing selected timing is pending", kind: "http-server", payload: `{"responseCode":200}`, thresholds: Thresholds{HTTPThresholds: HTTPThresholds{MaxTotalTime: &limit}}, status: "pending"},
+		{name: "explicit expected non2xx", kind: "http-server", payload: `{"responseCode":404}`, thresholds: Thresholds{HTTPThresholds: HTTPThresholds{ExpectedResponseCodes: []int{404}}}, status: "passed", ready: true},
+		{name: "known error finishes without timings", kind: "http-server", payload: `{"errorType":"Connection","errorDetails":"credential-secret"}`, thresholds: Thresholds{HTTPThresholds: HTTPThresholds{MaxTotalTime: &limit}}, status: "failed", ready: true},
 		{name: "missing loss is pending", kind: "agent-to-server", payload: `{"avgLatency":1}`, status: "pending"},
 		{name: "zero loss exists", kind: "agent-to-server", payload: `{"loss":0}`, status: "passed", ready: true},
-		{name: "loss fails without absent latency", kind: "agent-to-server", payload: `{"loss":100}`, thresholds: Thresholds{MaxLatency: &limit}, status: "failed", ready: true},
-		{name: "missing latency is pending", kind: "agent-to-server", payload: `{"loss":0}`, thresholds: Thresholds{MaxLatency: &limit}, status: "pending"},
+		{name: "loss fails without absent latency", kind: "agent-to-server", payload: `{"loss":100}`, thresholds: Thresholds{NetworkThresholds: NetworkThresholds{MaxLatency: &limit}}, status: "failed", ready: true},
+		{name: "missing latency is pending", kind: "agent-to-server", payload: `{"loss":0}`, thresholds: Thresholds{NetworkThresholds: NetworkThresholds{MaxLatency: &limit}}, status: "pending"},
 	}
 	for _, item := range cases {
 		t.Run(item.name, func(t *testing.T) {
