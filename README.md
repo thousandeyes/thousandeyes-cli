@@ -246,7 +246,7 @@ docker run --rm -e TE_TOKEN \
   --config /config/thousandeyes-ci.json --json
 ```
 
-For Argo Rollouts, see [`examples/argo-rollouts/analysis-template.yaml`](examples/argo-rollouts/analysis-template.yaml) and [`examples/argo-rollouts/rollout-step.yaml`](examples/argo-rollouts/rollout-step.yaml). Build and push the image to your own registry, create a Secret with a `token` key, and create the suite ConfigMap:
+For Argo Rollouts, see [`examples/syntetic/argo-rollouts/analysis-template.yaml`](examples/syntetic/argo-rollouts/analysis-template.yaml) and [`examples/syntetic/argo-rollouts/rollout-step.yaml`](examples/syntetic/argo-rollouts/rollout-step.yaml). Build and push the image to your own registry, create a Secret with a `token` key, and create the suite ConfigMap:
 
 ```bash
 kubectl create configmap thousandeyes-canary-suite \
