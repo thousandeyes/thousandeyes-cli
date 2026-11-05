@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strings"
 	"sync/atomic"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -131,6 +132,34 @@ func TestAutomationBinaryContract(t *testing.T) {
 			t.Fatalf("body file changed: error=%v stderr=%s", err, stderr)
 		}
 	})
+	t.Run("FIFO body preserves JSON", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("named FIFO fixture requires Unix")
+		}
+		path := filepath.Join(t.TempDir(), "request.json")
+		if output, err := exec.Command("mkfifo", path).CombinedOutput(); err != nil {
+			t.Fatalf("create FIFO: %v\n%s", err, output)
+		}
+		const payload = `{"url":"https://target.invalid","agents":[{"agentId":"6"}],"counter":9007199254740993}`
+		written := make(chan error, 1)
+		go func() {
+			file, err := os.OpenFile(path, os.O_WRONLY, 0)
+			if err == nil {
+				_, err = io.WriteString(file, payload)
+				if closeErr := file.Close(); err == nil {
+					err = closeErr
+				}
+			}
+			written <- err
+		}()
+		child, _, stderr := command([]string{"tests", "http-server", "instant", "--body-file", path, "--http-response"}, "")
+		if err := child.Run(); err != nil {
+			t.Fatalf("FIFO request failed: %v stderr=%s", err, stderr)
+		}
+		if err := <-written; err != nil || requestBody.Load().(string) != payload {
+			t.Fatalf("FIFO body changed: error=%v request=%s", err, requestBody.Load())
+		}
+	})
 	for _, value := range []string{"404", "429"} {
 		t.Run("HTTP "+value, func(t *testing.T) {
 			mode.Store(value)
@@ -182,6 +211,36 @@ func TestAutomationBinaryContract(t *testing.T) {
 		child, out, _ := command([]string{"--unknown-automation-flag"}, "")
 		if err := child.Run(); err == nil || out.Len() != 0 {
 			t.Fatal("argument error must exit nonzero without an envelope")
+		}
+	})
+	t.Run("signal interrupts body file opening", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("named pipes and SIGTERM delivery require Unix")
+		}
+		path := filepath.Join(t.TempDir(), "request.json")
+		if output, err := exec.Command("mkfifo", path).CombinedOutput(); err != nil {
+			t.Fatalf("create FIFO: %v\n%s", err, output)
+		}
+		child, out, _ := command([]string{"tests", "http-server", "instant", "--body-file", path, "--http-response"}, "")
+		if err := child.Start(); err != nil {
+			t.Fatal(err)
+		}
+		defer child.Process.Kill()
+		// Registration precedes main; wait for the installed signal handler
+		// before interrupting the FIFO open, whose writer never appears.
+		time.Sleep(3 * time.Second)
+		if err := child.Process.Signal(syscall.SIGTERM); err != nil {
+			t.Fatal(err)
+		}
+		finished := make(chan error, 1)
+		go func() { finished <- child.Wait() }()
+		select {
+		case err := <-finished:
+			if err == nil || out.Len() != 0 {
+				t.Fatal("interrupted file opening must fail without an envelope")
+			}
+		case <-time.After(5 * time.Second):
+			t.Fatal("CLI remained blocked opening a FIFO after SIGTERM")
 		}
 	})
 	t.Run("signal interrupts body input", func(t *testing.T) {

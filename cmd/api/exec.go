@@ -439,21 +439,9 @@ func buildAPIRequestBodyWithFieldOverrides(cmd *cobra.Command, bindings []bodyFi
 			return nil, errors.New("--body-file cannot be combined with generated request body flags")
 		}
 		path, _ := cmd.Flags().GetString("body-file")
-		reader := cmd.InOrStdin()
-		if path != "-" {
-			file, err := os.Open(path)
-			if err != nil {
-				return nil, fmt.Errorf("open request body file: %w", err)
-			}
-			defer file.Close()
-			reader = file
-		}
-		body, err := readRequestBody(cmd.Context(), reader)
+		body, err := readRequestBody(cmd.Context(), path, cmd.InOrStdin())
 		if err != nil {
-			if cmd.Context().Err() != nil {
-				return nil, cmd.Context().Err()
-			}
-			return nil, errors.New("read request body")
+			return nil, err
 		}
 		if !json.Valid(body) {
 			return nil, errors.New("request body must contain one valid JSON value")
@@ -489,16 +477,39 @@ func buildAPIRequestBodyWithFieldOverrides(cmd *cobra.Command, bindings []bodyFi
 	return out, nil
 }
 
-func readRequestBody(ctx context.Context, reader io.Reader) ([]byte, error) {
+func readRequestBody(ctx context.Context, path string, reader io.Reader) ([]byte, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	type result struct {
 		body []byte
 		err  error
 	}
 	finished := make(chan result, 1)
-	// Closing stdin cannot reliably interrupt an OS-level read. Let cancellation
-	// end the command even when its producer keeps the input stream open.
+	// Opening a FIFO and reading stdin can both block in the OS. Keep both
+	// operations inside this boundary so cancellation can end the command.
 	go func() {
+		if path != "-" {
+			file, err := os.Open(path)
+			if err != nil {
+				finished <- result{err: fmt.Errorf("open request body file: %w", err)}
+				return
+			}
+			defer file.Close()
+			stopClose := context.AfterFunc(ctx, func() { _ = file.Close() })
+			defer stopClose()
+			reader = file
+		}
+		// A FIFO can acquire its writer after the command was canceled. The
+		// owned file must be closed without beginning another blocking read.
+		if err := ctx.Err(); err != nil {
+			finished <- result{err: err}
+			return
+		}
 		body, err := io.ReadAll(reader)
+		if err != nil {
+			err = errors.New("read request body")
+		}
 		finished <- result{body, err}
 	}()
 	select {
