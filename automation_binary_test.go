@@ -213,7 +213,7 @@ func TestAutomationBinaryContract(t *testing.T) {
 			t.Fatal("argument error must exit nonzero without an envelope")
 		}
 	})
-	t.Run("signal interrupts body file opening", func(t *testing.T) {
+	t.Run("signal interrupts startup or body file opening", func(t *testing.T) {
 		if runtime.GOOS == "windows" {
 			t.Skip("named pipes and SIGTERM delivery require Unix")
 		}
@@ -226,20 +226,33 @@ func TestAutomationBinaryContract(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer child.Process.Kill()
-		// Registration precedes main; wait for the installed signal handler
-		// before interrupting the FIFO open, whose writer never appears.
-		time.Sleep(5 * time.Second)
-		if err := child.Process.Signal(syscall.SIGTERM); err != nil {
-			t.Fatal(err)
-		}
 		finished := make(chan error, 1)
 		go func() { finished <- child.Wait() }()
 		select {
 		case err := <-finished:
+			t.Fatalf("CLI exited before SIGTERM: error=%v stdout=%s stderr=%s", err, out, stderr)
+		case <-time.After(5 * time.Second):
+		}
+		if err := child.Process.Signal(syscall.SIGTERM); err != nil {
+			t.Fatal(err)
+		}
+		select {
+		case err := <-finished:
 			exit, ok := err.(*exec.ExitError)
-			if !ok || exit.ExitCode() != 1 || out.Len() != 0 || !strings.Contains(stderr.String(), "context canceled") {
-				t.Fatalf("expected handled cancellation with exit 1 and no envelope: error=%v stdout=%s stderr=%s", err, out, stderr)
+			if !ok || out.Len() != 0 {
+				t.Fatalf("expected interruption without an envelope: error=%v stdout=%s stderr=%s", err, out, stderr)
 			}
+			// Registration precedes main's signal handler. A slow startup may
+			// therefore exit from SIGTERM itself; once main starts, require its
+			// explicit cancellation error. The context-level FIFO regression
+			// separately proves blocked opening cancels without a timing guess.
+			handled := exit.ExitCode() == 1 && strings.Contains(stderr.String(), "context canceled")
+			status, isWaitStatus := exit.Sys().(syscall.WaitStatus)
+			startupSignal := isWaitStatus && status.Signaled() && status.Signal() == syscall.SIGTERM
+			if !handled && !startupSignal {
+				t.Fatalf("expected handled cancellation or startup SIGTERM: error=%v stderr=%s", err, stderr)
+			}
+			t.Logf("interruption outcome: handled cancellation=%t, startup SIGTERM=%t", handled, startupSignal)
 		case <-time.After(5 * time.Second):
 			t.Fatal("CLI remained blocked opening a FIFO after SIGTERM")
 		}
