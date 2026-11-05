@@ -160,6 +160,20 @@ and a short example shape.
 Many verbs expose **one flag per top-level JSON field** (names look like **`--my-field`**). Build the request body by passing those field flags. For
 array or object fields, pass the value as JSON on the flag (quoted in the shell).
 
+For a complete JSON payload, use `--body-file request.json` or `--body-file -` to read stdin. The payload is sent without dropping fields or rounding numbers. This option cannot be combined with generated body-field flags. Stdin keeps credentials and other payload secrets out of command-line arguments.
+
+**HTTP responses for automation**
+
+Use `--http-response` to print exactly one JSON response containing `statusCode`, `headers`, and `body`. JSON bodies retain their original values and numeric precision; other bodies are represented as strings. HTTP errors also produce this envelope and exit nonzero. Argument, transport, interruption, and response-size errors exit nonzero without an envelope.
+
+```bash
+thousandeyes tests http-server instant \
+  --body-file - --aid 123 --expand agent \
+  --http-response --no-redirects --max-response-bytes 4194304 < request.json
+```
+
+`--no-redirects` returns redirect responses without following them. `--max-response-bytes N` bounds the response body read into memory; its default of `0` preserves unlimited responses. These flags are available on all API commands. The response envelope contains the API body and headers, which can contain sensitive information; callers should capture them and choose what to publish. The default output format and redirect behavior are unchanged, and `--json` preserves numeric precision.
+
 Examples:
 
 ```bash

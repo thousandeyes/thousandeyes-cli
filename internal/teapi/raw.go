@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"strings"
@@ -31,9 +32,15 @@ import (
 )
 
 type RawClient struct {
-	baseURL string
-	token   string
-	client  *http.Client
+	baseURL          string
+	token            string
+	client           *http.Client
+	maxResponseBytes int64
+}
+
+type RawClientOptions struct {
+	NoRedirects      bool
+	MaxResponseBytes int64
 }
 
 var rawHTTPClientFactory = func() *http.Client {
@@ -42,11 +49,22 @@ var rawHTTPClientFactory = func() *http.Client {
 	}
 }
 
-func NewRawClient(baseURL, token string) *RawClient {
+func NewRawClient(baseURL, token string, options ...RawClientOptions) *RawClient {
+	var settings RawClientOptions
+	if len(options) > 0 {
+		settings = options[0]
+	}
+	client := rawHTTPClientFactory()
+	if settings.NoRedirects {
+		copy := *client
+		copy.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+		client = &copy
+	}
 	return &RawClient{
-		baseURL: strings.TrimRight(baseURL, "/"),
-		token:   token,
-		client:  rawHTTPClientFactory(),
+		baseURL:          strings.TrimRight(baseURL, "/"),
+		token:            token,
+		client:           client,
+		maxResponseBytes: settings.MaxResponseBytes,
 	}
 }
 
@@ -113,20 +131,30 @@ func (c *RawClient) Do(ctx context.Context, method, path string, query url.Value
 	}
 	defer resp.Body.Close()
 
-	respBody, err := io.ReadAll(resp.Body)
+	var reader io.Reader = resp.Body
+	if c.maxResponseBytes > 0 {
+		limit := c.maxResponseBytes
+		if limit < math.MaxInt64 {
+			limit++
+		}
+		reader = io.LimitReader(reader, limit)
+	}
+	respBody, err := io.ReadAll(reader)
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
 	if err != nil {
 		return nil, fmt.Errorf("read response body: %w", err)
 	}
+	if c.maxResponseBytes > 0 && int64(len(respBody)) > c.maxResponseBytes {
+		return nil, fmt.Errorf("response body exceeded maximum of %d bytes", c.maxResponseBytes)
+	}
+	result := &RawResponse{StatusCode: resp.StatusCode, Header: resp.Header.Clone(), Body: respBody}
 
 	if resp.StatusCode >= 300 {
-		return nil, &APIError{StatusCode: resp.StatusCode, Body: respBody}
+		return result, &APIError{StatusCode: resp.StatusCode, Body: respBody}
 	}
-
-	return &RawResponse{
-		StatusCode: resp.StatusCode,
-		Header:     resp.Header.Clone(),
-		Body:       respBody,
-	}, nil
+	return result, nil
 }
 
 func (c *RawClient) resolveURL(path string) string {

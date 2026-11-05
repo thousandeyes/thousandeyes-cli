@@ -179,7 +179,7 @@ func printHumanReadableArrayScalarItem(w io.Writer, value any, indent string) er
 
 func isScalarJSONValue(value any) bool {
 	switch value.(type) {
-	case nil, string, bool, float64:
+	case nil, string, bool, float64, json.Number:
 		return true
 	default:
 		return false
@@ -208,6 +208,8 @@ func formatHumanReadableValue(value any) string {
 			return strconv.FormatInt(int64(v), 10)
 		}
 		return strconv.FormatFloat(v, 'f', -1, 64)
+	case json.Number:
+		return string(v)
 	default:
 		raw, err := json.Marshal(v)
 		if err != nil {
@@ -281,7 +283,7 @@ func (s humanReadableStyler) key(value string) string {
 	return "\x1b[36m" + value + "\x1b[0m"
 }
 
-var apiSharedFlagNames = []string{"help", "token", "base-url", "json"}
+var apiSharedFlagNames = []string{"help", "token", "base-url", "json", "http-response", "no-redirects", "max-response-bytes"}
 
 func sharedAPIFlagUsages(cmd *cobra.Command) string {
 	if cmd == nil {

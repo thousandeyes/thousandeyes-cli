@@ -17,11 +17,14 @@
 package apicmd
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 
@@ -40,6 +43,16 @@ func dispatchAPICall(cmd *cobra.Command, cfg config.Config, method, path string,
 	jsonOut, _ := cmd.Flags().GetBool("json")
 	query, headers := buildRequestQueryAndHeaders(queryOverrides, body)
 	resp, err := executeRawAPICall(cmd, cfg, method, path, body, query, headers)
+	httpResponse, _ := cmd.Flags().GetBool("http-response")
+	if httpResponse && resp != nil {
+		if outputErr := writeHTTPResponse(cmd.OutOrStdout(), resp); outputErr != nil {
+			return outputErr
+		}
+		if err != nil {
+			return fmt.Errorf("API returned HTTP %d", resp.StatusCode)
+		}
+		return nil
+	}
 	if err != nil {
 		return err
 	}
@@ -58,19 +71,42 @@ func buildRequestQueryAndHeaders(queryOverrides url.Values, body []byte) (url.Va
 }
 
 func executeRawAPICall(cmd *cobra.Command, cfg config.Config, method, path string, body []byte, query url.Values, headers http.Header) (*teapi.RawResponse, error) {
-	client := teapi.NewRawClient(cliurls.APIBaseV7(cfg.BaseURL), cfg.Token)
+	noRedirects, _ := cmd.Flags().GetBool("no-redirects")
+	maximum, _ := cmd.Flags().GetInt64("max-response-bytes")
+	if maximum < 0 {
+		return nil, errors.New("--max-response-bytes must not be negative")
+	}
+	client := teapi.NewRawClient(cliurls.APIBaseV7(cfg.BaseURL), cfg.Token, teapi.RawClientOptions{NoRedirects: noRedirects, MaxResponseBytes: maximum})
 	return client.Do(cmd.Context(), method, path, query, headers, body)
+}
+
+func writeHTTPResponse(out io.Writer, response *teapi.RawResponse) error {
+	var body any = string(response.Body)
+	if json.Valid(response.Body) {
+		body = json.RawMessage(response.Body)
+	}
+	headers := response.Header
+	if headers == nil {
+		headers = http.Header{}
+	}
+	return json.NewEncoder(out).Encode(struct {
+		StatusCode int         `json:"statusCode"`
+		Headers    http.Header `json:"headers"`
+		Body       any         `json:"body"`
+	}{response.StatusCode, headers, body})
 }
 
 func writeAPIResponse(out io.Writer, resp *teapi.RawResponse, jsonOut bool) error {
 	if len(resp.Body) == 0 {
-		fmt.Fprintf(out, "HTTP %d\n", resp.StatusCode)
-		return nil
+		_, err := fmt.Fprintf(out, "HTTP %d\n", resp.StatusCode)
+		return err
 	}
 
-	if isJSONContentType(resp.Header.Get("Content-Type")) || json.Valid(resp.Body) {
+	if json.Valid(resp.Body) {
 		var payload any
-		if err := json.Unmarshal(resp.Body, &payload); err == nil {
+		decoder := json.NewDecoder(strings.NewReader(string(resp.Body)))
+		decoder.UseNumber()
+		if err := decoder.Decode(&payload); err == nil {
 			if jsonOut {
 				return output.PrintJSON(out, payload)
 			}
@@ -371,19 +407,24 @@ func parseBodyFlagValue(s string, kind string) (any, error) {
 		}
 		return v, nil
 	case "number":
-		if i, err := strconv.ParseInt(s, 10, 64); err == nil {
-			return float64(i), nil
+		if s == "" {
+			return nil, errors.New("expected a JSON number")
 		}
-		f, err := strconv.ParseFloat(s, 64)
-		if err != nil {
-			return nil, fmt.Errorf("expected number: %w", err)
+		number := json.Number(s)
+		if _, err := json.Marshal(number); err != nil {
+			return nil, errors.New("expected a JSON number")
 		}
-		return f, nil
+		return number, nil
 	case "string":
 		return s, nil
 	default:
 		var v any
-		if err := json.Unmarshal([]byte(s), &v); err != nil {
+		if !json.Valid([]byte(s)) {
+			return nil, errors.New("expected JSON value")
+		}
+		decoder := json.NewDecoder(strings.NewReader(s))
+		decoder.UseNumber()
+		if err := decoder.Decode(&v); err != nil {
 			return nil, fmt.Errorf("expected JSON value: %w", err)
 		}
 		return v, nil
@@ -391,6 +432,32 @@ func parseBodyFlagValue(s string, kind string) (any, error) {
 }
 
 func buildAPIRequestBodyWithFieldOverrides(cmd *cobra.Command, bindings []bodyFieldBinding, arrayBinding *bodyArrayBinding) ([]byte, error) {
+	if flag := cmd.Flags().Lookup("body-file"); flag != nil && flag.Changed {
+		if hasChangedBodyFieldFlag(cmd, bindings) || (arrayBinding != nil && cmd.Flags().Changed(arrayBinding.FlagName)) {
+			return nil, errors.New("--body-file cannot be combined with generated request body flags")
+		}
+		path, _ := cmd.Flags().GetString("body-file")
+		reader := cmd.InOrStdin()
+		if path != "-" {
+			file, err := os.Open(path)
+			if err != nil {
+				return nil, fmt.Errorf("open request body file: %w", err)
+			}
+			defer file.Close()
+			reader = file
+		}
+		body, err := readRequestBody(cmd.Context(), reader)
+		if err != nil {
+			if cmd.Context().Err() != nil {
+				return nil, cmd.Context().Err()
+			}
+			return nil, errors.New("read request body")
+		}
+		if !json.Valid(body) {
+			return nil, errors.New("request body must contain one valid JSON value")
+		}
+		return body, nil
+	}
 	if arrayBinding != nil {
 		return buildAPIRequestBodyFromArrayFlag(cmd, arrayBinding)
 	}
@@ -418,6 +485,29 @@ func buildAPIRequestBodyWithFieldOverrides(cmd *cobra.Command, bindings []bodyFi
 		return nil, err
 	}
 	return out, nil
+}
+
+func readRequestBody(ctx context.Context, reader io.Reader) ([]byte, error) {
+	type result struct {
+		body []byte
+		err  error
+	}
+	finished := make(chan result, 1)
+	// Closing stdin cannot reliably interrupt an OS-level read. Let cancellation
+	// end the command even when its producer keeps the input stream open.
+	go func() {
+		body, err := io.ReadAll(reader)
+		finished <- result{body, err}
+	}()
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case value := <-finished:
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		return value.body, value.err
+	}
 }
 
 func buildAPIRequestBodyFromArrayFlag(cmd *cobra.Command, binding *bodyArrayBinding) ([]byte, error) {

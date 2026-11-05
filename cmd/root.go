@@ -17,6 +17,7 @@
 package cmd
 
 import (
+	"context"
 	"github.com/spf13/cobra"
 	apicmd "github.com/thousandeyes/thousandeyes-cli/cmd/api"
 	"github.com/thousandeyes/thousandeyes-cli/internal/config"
@@ -65,6 +66,10 @@ func newRootCommand() *cobra.Command {
 	return cmd
 }
 
-func Execute() {
-	rootCmd.Execute()
+func Execute() error {
+	return ExecuteContext(context.Background())
+}
+
+func ExecuteContext(ctx context.Context) error {
+	return rootCmd.ExecuteContext(ctx)
 }

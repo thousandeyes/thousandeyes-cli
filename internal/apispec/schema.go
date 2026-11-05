@@ -329,6 +329,10 @@ func parseSchemaNodes(nodes []*yamlNode) *schemaHint {
 func applySchemaNode(schema *schemaHint, node *yamlNode) {
 	text := strings.TrimPrefix(node.Text, "- ")
 	key, value, hasValue := splitYAMLKeyValue(text)
+	if key == "$ref" && isDescriptionBlockMarker(value) {
+		schema.Ref = strings.Trim(collectYAMLBlockText(node.Children), "'\"")
+		return
+	}
 
 	if key == "description" && applySchemaDescriptionValue(schema, value, node.Children) {
 		return

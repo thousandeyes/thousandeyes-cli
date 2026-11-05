@@ -59,8 +59,12 @@ type operationParamBinding struct {
 
 // Persistent flag names on apiCmd that must not be shadowed by JSON body field flags.
 var apiCmdPersistentFlagNames = map[string]struct{}{
-	"json": {},
-	"help": {},
+	"json":               {},
+	"help":               {},
+	"http-response":      {},
+	"no-redirects":       {},
+	"max-response-bytes": {},
+	"body-file":          {},
 }
 
 const (
@@ -189,6 +193,9 @@ func RootResourceRegistrationError(root *cobra.Command) error {
 func newAPIResourceParentCommand(resource string) *cobra.Command {
 	parent := newAPIHelpOnlyCommand(resource)
 	parent.PersistentFlags().Bool("json", false, "Print raw API payload as JSON")
+	parent.PersistentFlags().Bool("http-response", false, "Print HTTP status, headers, and body as one JSON response")
+	parent.PersistentFlags().Bool("no-redirects", false, "Return HTTP redirects without following them")
+	parent.PersistentFlags().Int64("max-response-bytes", 0, "Maximum response body size in bytes (0 means unlimited)")
 	return parent
 }
 
@@ -303,6 +310,9 @@ func apiVerbCommand(apiCmd *cobra.Command, getConfig ConfigProvider, op apiOpera
 	paramBindings = buildOperationParamBindings(c, apiCmd, op.Parameters)
 	registerOperationParamFlags(c, paramBindings)
 
+	if op.HasBody {
+		c.Flags().String("body-file", "", "Read the complete JSON request body from a file, or - for stdin")
+	}
 	bodyBindings = buildBodyFieldBindings(apiCmd, c, op)
 	registerBodyFieldFlags(c, bodyBindings)
 	bodyArrayBinding = buildBodyArrayBinding(apiCmd, c, op)
