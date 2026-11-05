@@ -221,14 +221,14 @@ func TestAutomationBinaryContract(t *testing.T) {
 		if output, err := exec.Command("mkfifo", path).CombinedOutput(); err != nil {
 			t.Fatalf("create FIFO: %v\n%s", err, output)
 		}
-		child, out, _ := command([]string{"tests", "http-server", "instant", "--body-file", path, "--http-response"}, "")
+		child, out, stderr := command([]string{"tests", "http-server", "instant", "--body-file", path, "--http-response"}, "")
 		if err := child.Start(); err != nil {
 			t.Fatal(err)
 		}
 		defer child.Process.Kill()
 		// Registration precedes main; wait for the installed signal handler
 		// before interrupting the FIFO open, whose writer never appears.
-		time.Sleep(3 * time.Second)
+		time.Sleep(5 * time.Second)
 		if err := child.Process.Signal(syscall.SIGTERM); err != nil {
 			t.Fatal(err)
 		}
@@ -236,8 +236,9 @@ func TestAutomationBinaryContract(t *testing.T) {
 		go func() { finished <- child.Wait() }()
 		select {
 		case err := <-finished:
-			if err == nil || out.Len() != 0 {
-				t.Fatal("interrupted file opening must fail without an envelope")
+			exit, ok := err.(*exec.ExitError)
+			if !ok || exit.ExitCode() != 1 || out.Len() != 0 || !strings.Contains(stderr.String(), "context canceled") {
+				t.Fatalf("expected handled cancellation with exit 1 and no envelope: error=%v stdout=%s stderr=%s", err, out, stderr)
 			}
 		case <-time.After(5 * time.Second):
 			t.Fatal("CLI remained blocked opening a FIFO after SIGTERM")
