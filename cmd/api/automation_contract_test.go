@@ -122,3 +122,17 @@ func TestGeneratedNumberRejectsEmptyValue(t *testing.T) {
 		t.Fatal("empty numeric input must not become zero")
 	}
 }
+
+func TestHTTPResponseEnvelopeDoesNotExpandJSONBody(t *testing.T) {
+	body := []byte(`{"html":"` + strings.Repeat("<&>", 1024) + `"}`)
+	var output bytes.Buffer
+	if err := writeHTTPResponse(&output, &teapi.RawResponse{StatusCode: 200, Body: body}); err != nil {
+		t.Fatal(err)
+	}
+	var envelope struct {
+		Body json.RawMessage `json:"body"`
+	}
+	if err := json.Unmarshal(output.Bytes(), &envelope); err != nil || len(envelope.Body) > len(body) {
+		t.Fatalf("envelope expanded JSON beyond the HTTP body limit: received=%d encoded=%d error=%v", len(body), len(envelope.Body), err)
+	}
+}

@@ -89,7 +89,9 @@ func writeHTTPResponse(out io.Writer, response *teapi.RawResponse) error {
 	if headers == nil {
 		headers = http.Header{}
 	}
-	return json.NewEncoder(out).Encode(struct {
+	encoder := json.NewEncoder(out)
+	encoder.SetEscapeHTML(false)
+	return encoder.Encode(struct {
 		StatusCode int         `json:"statusCode"`
 		Headers    http.Header `json:"headers"`
 		Body       any         `json:"body"`
