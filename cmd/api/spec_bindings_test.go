@@ -80,6 +80,23 @@ func TestBuildBodyFieldBindingsForHTTPServerInstantIncludesRequiredFlags(t *test
 	}
 }
 
+func TestBuildBodyFieldBindingsFollowsFoldedNetworkSchemaRefs(t *testing.T) {
+	index, err := loadAPIOperationIndex()
+	if err != nil {
+		t.Fatal(err)
+	}
+	bindings := buildBodyFieldBindings(newAPIResourceParentCommand("tests"), &cobra.Command{}, index["createAgentToServerInstantTest"])
+	fields := map[string]bool{}
+	for _, binding := range bindings {
+		fields[binding.FlagName] = true
+	}
+	for _, name := range []string{"server", "protocol", "agents", "num-path-traces", "probe-mode"} {
+		if !fields[name] {
+			t.Errorf("network field --%s missing after folded schema reference", name)
+		}
+	}
+}
+
 func assertNoBindingsForEmptySchema(t *testing.T, op apiOperation, gotBindings []bodyFieldBinding) {
 	t.Helper()
 	if len(gotBindings) != 0 {

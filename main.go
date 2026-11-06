@@ -16,8 +16,21 @@
 
 package main
 
-import "github.com/thousandeyes/thousandeyes-cli/cmd"
+import (
+	"context"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/thousandeyes/thousandeyes-cli/cmd"
+)
 
 func main() {
-	cmd.Execute()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	err := cmd.ExecuteContext(ctx)
+	interrupted := ctx.Err() != nil
+	stop()
+	if err != nil || interrupted {
+		os.Exit(1)
+	}
 }

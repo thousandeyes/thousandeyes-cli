@@ -125,8 +125,8 @@ func TestAPIVerbCommandDoesNotAddLegacyBodyFlagsWhenOperationHasBody(t *testing.
 	if flag := cmd.Flags().Lookup("body"); flag != nil {
 		t.Fatal("expected --body to be removed for operation with request body")
 	}
-	if flag := cmd.Flags().Lookup("body-file"); flag != nil {
-		t.Fatal("expected --body-file to be removed for operation with request body")
+	if flag := cmd.Flags().Lookup("body-file"); flag == nil {
+		t.Fatal("expected --body-file on operation with request body")
 	}
 }
 

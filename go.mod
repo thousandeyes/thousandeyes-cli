@@ -1,6 +1,6 @@
 module github.com/thousandeyes/thousandeyes-cli
 
-go 1.25.11
+go 1.26.10
 
 require (
 	github.com/spf13/cobra v1.8.1
