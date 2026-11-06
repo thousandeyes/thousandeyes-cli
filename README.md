@@ -34,7 +34,7 @@ After install, the script prints shell-specific instructions for enabling tab co
 
 Requirements:
 
-- Go 1.25+
+- Go 1.26.10 or later
 - A ThousandEyes bearer token
 
 ```bash
